@@ -1,4 +1,4 @@
-.PHONY: help run build test clean migrate-up migrate-tenant-create migrate-tenant-drop docker-up docker-down
+.PHONY: help run build test clean migrate-up migrate-tenant-create migrate-tenant-drop sqlc-generate docker-up docker-down
 
 # Default target
 help:
@@ -7,6 +7,7 @@ help:
 	@echo "  make build                        - Build the application binary"
 	@echo "  make test                         - Run tests"
 	@echo "  make clean                        - Clean build artifacts"
+	@echo "  make sqlc-generate                - Generate sqlc code from SQL queries"
 	@echo "  make migrate-up                   - Run public schema migrations"
 	@echo "  make migrate-tenant-create schema=<name> - Create tenant schema"
 	@echo "  make migrate-tenant-drop schema=<name>   - Drop tenant schema"
@@ -35,6 +36,11 @@ build-linux:
 # Run tests
 test:
 	go test -v -race -coverprofile=coverage.out ./...
+
+# Generate sqlc code
+sqlc-generate:
+	@echo "Generating sqlc code..."
+	@sqlc generate
 
 # Clean build artifacts
 clean:

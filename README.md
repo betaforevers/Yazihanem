@@ -114,24 +114,37 @@ docker-compose up -d
 ### Running Tests
 
 ```bash
-go test ./...
+cd backend/
+make test
+```
+
+### Generate sqlc Code
+
+After modifying SQL queries in `backend/internal/infrastructure/database/sqlc/queries/`:
+
+```bash
+cd backend/
+make sqlc-generate
 ```
 
 ### Database Migrations
 
-Create a new migration:
+Run public schema migrations:
 ```bash
-make migrate-create name=add_users_table
-```
-
-Apply migrations:
-```bash
+cd backend/
 make migrate-up
 ```
 
-Rollback migrations:
+Create a new tenant schema:
 ```bash
-make migrate-down
+cd backend/
+make migrate-tenant-create schema=tenant_example
+```
+
+Drop a tenant schema:
+```bash
+cd backend/
+make migrate-tenant-drop schema=tenant_example
 ```
 
 ## API Documentation
