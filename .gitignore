@@ -171,3 +171,5 @@ docker-compose.override.yml
 # Backup files
 *.bak
 *.backup
+
+ARCHITECTURE-DESIGN.md

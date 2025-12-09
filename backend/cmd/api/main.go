@@ -14,8 +14,12 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/mehmetkilic/yazihanem/config"
+	"github.com/mehmetkilic/yazihanem/internal/delivery/http/handler"
 	"github.com/mehmetkilic/yazihanem/internal/delivery/http/middleware"
+	infraCache "github.com/mehmetkilic/yazihanem/internal/infrastructure/cache"
 	"github.com/mehmetkilic/yazihanem/internal/infrastructure/database"
+	"github.com/mehmetkilic/yazihanem/pkg/auth"
+	cachepkg "github.com/mehmetkilic/yazihanem/pkg/cache"
 	dbpkg "github.com/mehmetkilic/yazihanem/pkg/database"
 )
 
@@ -35,8 +39,27 @@ func main() {
 	defer pool.Close()
 	log.Println("✓ Database connected")
 
+	// Initialize Redis connection
+	log.Println("Connecting to Redis...")
+	redisClient, err := cachepkg.NewRedisClient(ctx, &cfg.Redis)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	defer redisClient.Close()
+	log.Println("✓ Redis connected")
+
+	// Initialize cache and session managers
+	cacheManager := infraCache.NewCacheManager(redisClient)
+	sessionManager := infraCache.NewSessionManager(redisClient, "session", 24*time.Hour)
+
+	// Initialize JWT manager
+	jwtManager := auth.NewJWTManager(cfg.JWT.Secret, cfg.JWT.ExpiryDuration)
+
 	// Initialize repositories
 	tenantRepo := database.NewTenantRepository(pool.Pool)
+
+	// Initialize handlers
+	authHandler := handler.NewAuthHandler(jwtManager, sessionManager)
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
@@ -72,7 +95,12 @@ func main() {
 		dbErr := pool.HealthCheck(ctx)
 		dbHealthy := dbErr == nil
 
+		// Check Redis health
+		redisErr := redisClient.HealthCheck(ctx)
+		redisHealthy := redisErr == nil
+
 		stats := pool.Stats()
+		redisStats := redisClient.Stats()
 
 		return c.JSON(fiber.Map{
 			"status":  "ok",
@@ -82,18 +110,25 @@ func main() {
 				"total_connections": stats.TotalConns(),
 				"idle_connections":  stats.IdleConns(),
 			},
+			"redis": fiber.Map{
+				"healthy":     redisHealthy,
+				"total_conns": redisStats.TotalConns,
+				"idle_conns":  redisStats.IdleConns,
+				"stale_conns": redisStats.StaleConns,
+			},
 			"timestamp": time.Now().Unix(),
 		})
 	})
 
-	// Initialize tenant resolver middleware
+	// Initialize middlewares
 	tenantResolver := middleware.NewTenantResolver(tenantRepo)
+	authMiddleware := middleware.NewAuthMiddleware(jwtManager)
 
 	// API routes group with tenant resolution
 	api := app.Group("/api/v1")
 	api.Use(tenantResolver.Resolve()) // Apply tenant middleware to all API routes
 
-	// Root API endpoint
+	// Public routes (no authentication required)
 	api.Get("/", func(c *fiber.Ctx) error {
 		tenant, err := middleware.GetTenantFromContext(c)
 		if err != nil {
@@ -101,10 +136,34 @@ func main() {
 		}
 
 		return c.JSON(fiber.Map{
-			"message":      "Yazıhanem API v1",
-			"tenant":       tenant.Name,
-			"tenant_id":    tenant.ID,
-			"schema":       tenant.SchemaName,
+			"message":         "Yazıhanem API v1",
+			"tenant":          tenant.Name,
+			"tenant_id":       tenant.ID,
+			"schema":          tenant.SchemaName,
+			"cache_manager":   cacheManager != nil,
+			"session_manager": sessionManager != nil,
+		})
+	})
+
+	// Auth routes (public)
+	authRoutes := api.Group("/auth")
+	authRoutes.Post("/login", authHandler.Login)
+	authRoutes.Post("/refresh", authHandler.RefreshToken)
+
+	// Protected auth routes (requires authentication)
+	authProtected := authRoutes.Group("", authMiddleware.Authenticate())
+	authProtected.Post("/logout", authHandler.Logout)
+	authProtected.Get("/me", authHandler.Me)
+	authProtected.Post("/change-password", authHandler.ChangePassword)
+
+	// Protected API routes (requires authentication)
+	protected := api.Group("", authMiddleware.Authenticate())
+
+	// Admin-only routes
+	adminRoutes := protected.Group("", middleware.RequireRole("admin"))
+	adminRoutes.Get("/admin/stats", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"message": "Admin stats endpoint",
 		})
 	})
 
