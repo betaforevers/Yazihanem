@@ -1,17 +1,17 @@
-.PHONY: help run build test clean migrate-up migrate-down migrate-create docker-up docker-down
+.PHONY: help run build test clean migrate-up migrate-tenant-create migrate-tenant-drop docker-up docker-down
 
 # Default target
 help:
 	@echo "Available commands:"
-	@echo "  make run           - Run the application"
-	@echo "  make build         - Build the application binary"
-	@echo "  make test          - Run tests"
-	@echo "  make clean         - Clean build artifacts"
-	@echo "  make migrate-up    - Run database migrations"
-	@echo "  make migrate-down  - Rollback database migrations"
-	@echo "  make migrate-create name=<migration_name> - Create new migration"
-	@echo "  make docker-up     - Start Docker Compose services"
-	@echo "  make docker-down   - Stop Docker Compose services"
+	@echo "  make run                          - Run the application"
+	@echo "  make build                        - Build the application binary"
+	@echo "  make test                         - Run tests"
+	@echo "  make clean                        - Clean build artifacts"
+	@echo "  make migrate-up                   - Run public schema migrations"
+	@echo "  make migrate-tenant-create schema=<name> - Create tenant schema"
+	@echo "  make migrate-tenant-drop schema=<name>   - Drop tenant schema"
+	@echo "  make docker-up                    - Start Docker Compose services"
+	@echo "  make docker-down                  - Stop Docker Compose services"
 
 # Run the application
 run:
@@ -41,15 +41,28 @@ clean:
 	rm -rf bin/
 	rm -f coverage.out
 
-# Database migrations (requires golang-migrate)
+# Database migrations
 migrate-up:
-	@echo "Run migrations manually with: migrate -path migrations/schema -database postgres://user:pass@localhost:5432/yazihanem?sslmode=disable up"
+	@echo "Running public schema migrations..."
+	@go run cmd/migrate/main.go up
 
-migrate-down:
-	@echo "Rollback migrations manually with: migrate -path migrations/schema -database postgres://user:pass@localhost:5432/yazihanem?sslmode=disable down"
+migrate-tenant-create:
+	@if [ -z "$(schema)" ]; then \
+		echo "Error: schema name required"; \
+		echo "Usage: make migrate-tenant-create schema=tenant_example"; \
+		exit 1; \
+	fi
+	@echo "Creating tenant schema: $(schema)"
+	@go run cmd/migrate/main.go create-tenant $(schema)
 
-migrate-create:
-	@echo "Create migration manually with: migrate create -ext sql -dir migrations/schema -seq $(name)"
+migrate-tenant-drop:
+	@if [ -z "$(schema)" ]; then \
+		echo "Error: schema name required"; \
+		echo "Usage: make migrate-tenant-drop schema=tenant_example"; \
+		exit 1; \
+	fi
+	@echo "Dropping tenant schema: $(schema)"
+	@go run cmd/migrate/main.go drop-tenant $(schema)
 
 # Docker Compose (runs from project root)
 docker-up:
