@@ -1,7 +1,7 @@
 # Yazıhanem - Architectural Decisions Document
 **Date**: 2025-12-09
 **Project Type**: Multi-tenant Content Management System
-**Tech Stack**: Go + Fiber + sqlc + PostgreSQL + Redis + Flutter
+**Tech Stack**: Go + Fiber + sqlc + PostgreSQL + Redis + Flutter + Next.js
 
 ---
 
@@ -25,14 +25,18 @@
 
 ## INFRASTRUCTURE REQUIREMENTS
 
-### Application Server (Go + Fiber)
+### Application Server (Go + Fiber + Web Admin Static Hosting)
 ```
 CPU: 4 vCPU (Intel Xeon or AMD EPYC)
 RAM: 8 GB
 Storage: 50 GB SSD
 Network: 1 Gbps
 OS: Ubuntu 22.04 LTS
+Services:
+  - Go Fiber API (port 3000)
+  - Nginx reverse proxy + Web Admin static files (port 80/443)
 ```
+**Note**: Web Admin Panel will be built as static Next.js export and served via Nginx
 
 ### PostgreSQL Database Server
 ```
@@ -93,8 +97,11 @@ Growth Estimate: +100 GB/month
 - **Authentication**: JWT with tenant context
 
 ### Frontend
-- **Mobile**: Flutter 3.x
-- **API Integration**: RESTful JSON API
+- **Mobile App (Tenant Users)**: Flutter 3.x
+- **Web Admin Panel (Management)**: Next.js 14+ with React 18
+- **UI Framework (Web)**: Tailwind CSS + shadcn/ui
+- **State Management (Web)**: React Context / Zustand
+- **API Integration**: RESTful JSON API (both platforms)
 
 ### Architecture Pattern
 - **Clean Architecture** (Domain → Use Cases → Controllers → Infrastructure)
@@ -133,6 +140,30 @@ Growth Estimate: +100 GB/month
 3. Create deployment scripts for Hetzner
 4. Setup CI/CD pipeline
 5. Write operational documentation
+
+### Phase 5: Web Admin Panel Development (Day 15-21)
+1. Initialize Next.js 14 project with TypeScript
+2. Setup Tailwind CSS + shadcn/ui components
+3. Implement authentication flow (JWT integration)
+4. Build tenant management dashboard
+5. Create user management interface
+6. Develop content CRUD interface
+7. Add media upload/management
+8. Implement role-based access control
+9. Build analytics dashboard
+10. Configure static export and deployment
+
+### Phase 6: Flutter Mobile App Development (Day 22-35)
+1. Initialize Flutter project structure
+2. Setup state management (Riverpod/Bloc)
+3. Implement authentication screens
+4. Build content browsing UI
+5. Create content creation/editing screens
+6. Add media upload functionality
+7. Implement offline-first architecture
+8. Add push notifications
+9. Build user profile management
+10. Testing and app store preparation
 
 ---
 

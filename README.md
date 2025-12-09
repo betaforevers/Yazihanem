@@ -13,6 +13,7 @@ A high-performance, schema-based multi-tenant CMS built with Go, Fiber, PostgreS
 
 ## Tech Stack
 
+### Backend
 - **Language**: Go 1.21+
 - **Web Framework**: Fiber v2
 - **Database**: PostgreSQL 15+
@@ -21,27 +22,47 @@ A high-performance, schema-based multi-tenant CMS built with Go, Fiber, PostgreS
 - **Migrations**: golang-migrate
 - **Authentication**: JWT
 
+### Frontend
+- **Web Admin Panel**: Next.js 14 + React + TypeScript
+- **UI Framework**: Tailwind CSS + shadcn/ui
+- **Mobile App**: Flutter 3.x
+- **State Management**: Zustand (Web) / Riverpod (Mobile)
+
 ## Project Structure
 
 ```
 yazihanem/
-├── cmd/
-│   └── api/              # Application entry point
-├── internal/
-│   ├── domain/          # Business entities and rules
-│   │   ├── entity/      # Domain models
-│   │   └── repository/  # Repository interfaces
-│   ├── usecase/         # Business logic
-│   ├── delivery/        # HTTP handlers and middleware
-│   │   └── http/
-│   └── infrastructure/  # External dependencies
-│       ├── database/    # PostgreSQL implementation
-│       ├── cache/       # Redis implementation
-│       └── storage/     # File storage
-├── config/              # Configuration management
-├── migrations/          # Database migrations
-│   └── schema/
-├── pkg/                 # Shared utilities
+├── backend/             # Go API Backend
+│   ├── cmd/
+│   │   └── api/              # Application entry point
+│   ├── internal/
+│   │   ├── domain/          # Business entities and rules
+│   │   │   ├── entity/      # Domain models
+│   │   │   └── repository/  # Repository interfaces
+│   │   ├── usecase/         # Business logic
+│   │   ├── delivery/        # HTTP handlers and middleware
+│   │   │   └── http/
+│   │   └── infrastructure/  # External dependencies
+│   │       ├── database/    # PostgreSQL implementation
+│   │       ├── cache/       # Redis implementation
+│   │       └── storage/     # File storage
+│   ├── config/              # Configuration management
+│   ├── migrations/          # Database migrations
+│   │   └── schema/
+│   └── pkg/                 # Shared utilities
+├── web-admin/           # Next.js Web Admin Panel
+│   ├── src/
+│   │   ├── app/             # Next.js app directory
+│   │   ├── components/      # React components
+│   │   ├── lib/             # Utilities and API client
+│   │   └── types/           # TypeScript types
+│   └── public/              # Static assets
+├── mobile/              # Flutter Mobile App
+│   ├── lib/
+│   │   ├── features/        # Feature modules
+│   │   ├── core/            # Core functionality
+│   │   └── shared/          # Shared widgets
+│   └── assets/              # App assets
 └── scripts/             # Deployment and utility scripts
 ```
 
