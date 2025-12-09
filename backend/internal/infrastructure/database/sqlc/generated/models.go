@@ -5,18 +5,19 @@
 package sqlc
 
 import (
+	"time"
+
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Tenant struct {
-	ID         uuid.UUID          `json:"id"`
-	Name       string             `json:"name"`
-	SchemaName string             `json:"schema_name"`
-	Domain     string             `json:"domain"`
-	IsActive   bool               `json:"is_active"`
-	MaxUsers   int32              `json:"max_users"`
-	MaxStorage int64              `json:"max_storage"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	SchemaName string    `json:"schema_name"`
+	Domain     string    `json:"domain"`
+	IsActive   bool      `json:"is_active"`
+	MaxUsers   int32     `json:"max_users"`
+	MaxStorage int64     `json:"max_storage"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }

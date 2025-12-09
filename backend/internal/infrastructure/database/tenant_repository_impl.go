@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mehmetkilic/yazihanem/internal/domain/entity"
 	"github.com/mehmetkilic/yazihanem/internal/domain/repository"
-	"github.com/mehmetkilic/yazihanem/internal/infrastructure/database/sqlc/generated"
+	generated "github.com/mehmetkilic/yazihanem/internal/infrastructure/database/sqlc/generated"
 )
 
 // TenantRepositoryImpl implements repository.TenantRepository using sqlc
