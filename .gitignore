@@ -1,28 +1,138 @@
+# ===========================
+# BACKEND (Go + Fiber)
+# ===========================
+
 # Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-yazıhanem
-main
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/yazihanem
+backend/main
+backend/bin/
 
 # Test binary
-*.test
+backend/*.test
 
 # Output of the go coverage tool
-*.out
+backend/*.out
+backend/coverage.out
 
 # Go workspace file
-go.work
+backend/go.work
 
 # Dependency directories
-vendor/
+backend/vendor/
+
+# Build artifacts
+backend/dist/
+backend/build/
+
+# Migration tracking
+backend/migrations/**/*.dirty
+
+# ===========================
+# WEB ADMIN (Next.js + React)
+# ===========================
+
+# Dependencies
+web-admin/node_modules/
+web-admin/.pnp
+web-admin/.pnp.js
+
+# Testing
+web-admin/coverage/
+
+# Next.js
+web-admin/.next/
+web-admin/out/
+web-admin/build/
+
+# Production
+web-admin/dist/
+
+# Misc
+web-admin/.DS_Store
+web-admin/*.pem
+
+# Debug
+web-admin/npm-debug.log*
+web-admin/yarn-debug.log*
+web-admin/yarn-error.log*
+
+# Vercel
+web-admin/.vercel
+
+# Typescript
+web-admin/*.tsbuildinfo
+web-admin/next-env.d.ts
+
+# ===========================
+# MOBILE (Flutter)
+# ===========================
+
+# Flutter/Dart/Pub related
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/flutter_*.png
+mobile/linked_*.ds
+mobile/unlinked.ds
+mobile/unlinked_spec.ds
+
+# Android related
+mobile/android/**/gradle-wrapper.jar
+mobile/android/.gradle
+mobile/android/captures/
+mobile/android/gradlew
+mobile/android/gradlew.bat
+mobile/android/local.properties
+mobile/android/**/GeneratedPluginRegistrant.java
+mobile/android/key.properties
+mobile/**/*.jks
+
+# iOS/XCode related
+mobile/ios/**/*.mode1v3
+mobile/ios/**/*.mode2v3
+mobile/ios/**/*.moved-aside
+mobile/ios/**/*.pbxuser
+mobile/ios/**/*.perspectivev3
+mobile/ios/**/*sync/
+mobile/ios/**/.sconsign.dblite
+mobile/ios/**/.tags*
+mobile/ios/**/.vagrant/
+mobile/ios/**/DerivedData/
+mobile/ios/**/Icon?
+mobile/ios/**/Pods/
+mobile/ios/**/.symlinks/
+mobile/ios/**/profile
+mobile/ios/**/xcuserdata
+mobile/ios/.generated/
+mobile/ios/Flutter/App.framework
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/app.flx
+mobile/ios/Flutter/app.zip
+mobile/ios/Flutter/flutter_assets/
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/ServiceDefinitions.json
+mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+# ===========================
+# SHARED / GLOBAL
+# ===========================
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+**/.env.production
 
 # IDE
 .vscode/
@@ -30,14 +140,19 @@ vendor/
 *.swp
 *.swo
 *~
+*.code-workspace
 
 # OS
 .DS_Store
 Thumbs.db
+._*
 
 # Logs
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Database
 *.db
@@ -49,10 +164,10 @@ tmp/
 temp/
 *.tmp
 
-# Build artifacts
-dist/
-build/
-bin/
+# Docker
+docker-compose.override.yml
+.docker/
 
-# Migration tracking
-*.dirty
+# Backup files
+*.bak
+*.backup
