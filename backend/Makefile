@@ -19,7 +19,18 @@ run:
 
 # Build the application
 build:
+	@mkdir -p bin
 	go build -o bin/yazihanem cmd/api/main.go
+
+# Build for Windows
+build-windows:
+	@mkdir -p bin
+	GOOS=windows GOARCH=amd64 go build -o bin/yazihanem.exe cmd/api/main.go
+
+# Build for Linux (production)
+build-linux:
+	@mkdir -p bin
+	GOOS=linux GOARCH=amd64 go build -o bin/yazihanem cmd/api/main.go
 
 # Run tests
 test:
@@ -40,9 +51,9 @@ migrate-down:
 migrate-create:
 	@echo "Create migration manually with: migrate create -ext sql -dir migrations/schema -seq $(name)"
 
-# Docker Compose
+# Docker Compose (runs from project root)
 docker-up:
-	docker-compose up -d
+	cd .. && docker-compose up -d
 
 docker-down:
-	docker-compose down
+	cd .. && docker-compose down
