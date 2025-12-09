@@ -57,9 +57,10 @@ func main() {
 
 	// Initialize repositories
 	tenantRepo := database.NewTenantRepository(pool.Pool)
+	userRepo := database.NewUserRepository(pool.Pool)
 
 	// Initialize handlers
-	authHandler := handler.NewAuthHandler(jwtManager, sessionManager)
+	authHandler := handler.NewAuthHandler(jwtManager, sessionManager, userRepo)
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{

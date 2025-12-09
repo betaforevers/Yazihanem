@@ -1,9 +1,13 @@
 version: "2"
 sql:
-  # Public schema queries (tenants table)
+  # Combined queries for all tables (public and tenant schemas)
   - engine: "postgresql"
-    queries: "internal/infrastructure/database/sqlc/queries/tenants.sql"
-    schema: "migrations/schema/000001_create_tenants_table.up.sql"
+    queries:
+      - "internal/infrastructure/database/sqlc/queries/tenants.sql"
+      - "internal/infrastructure/database/sqlc/queries/users.sql"
+    schema:
+      - "migrations/schema/000001_create_tenants_table.up.sql"
+      - "migrations/schema/000002_tenant_schema_for_sqlc.sql"
     gen:
       go:
         package: "sqlc"

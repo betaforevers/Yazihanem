@@ -1,8 +1,6 @@
--- Note: These queries use placeholder {SCHEMA} which will be replaced at runtime
--- The actual schema name (e.g., tenant_acme) will be injected dynamically
-
 -- name: CreateUser :one
 INSERT INTO users (
+    id,
     email,
     password_hash,
     first_name,
@@ -10,7 +8,13 @@ INSERT INTO users (
     role,
     is_active
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    gen_random_uuid(),
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6
 ) RETURNING *;
 
 -- name: GetUserByID :one
@@ -21,46 +25,47 @@ WHERE id = $1 LIMIT 1;
 SELECT * FROM users
 WHERE email = $1 LIMIT 1;
 
--- name: ListUsers :many
-SELECT * FROM users
-ORDER BY created_at DESC
-LIMIT $1 OFFSET $2;
-
--- name: ListUsersByRole :many
-SELECT * FROM users
-WHERE role = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3;
-
--- name: ListActiveUsers :many
-SELECT * FROM users
-WHERE is_active = true
-ORDER BY created_at DESC
-LIMIT $1 OFFSET $2;
-
 -- name: UpdateUser :one
 UPDATE users
 SET
-    email = COALESCE(sqlc.narg('email'), email),
-    first_name = COALESCE(sqlc.narg('first_name'), first_name),
-    last_name = COALESCE(sqlc.narg('last_name'), last_name),
-    role = COALESCE(sqlc.narg('role'), role),
-    is_active = COALESCE(sqlc.narg('is_active'), is_active)
-WHERE id = sqlc.arg('id')
+    email = COALESCE($2, email),
+    first_name = COALESCE($3, first_name),
+    last_name = COALESCE($4, last_name),
+    role = COALESCE($5, role),
+    is_active = COALESCE($6, is_active),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
 RETURNING *;
 
 -- name: UpdateUserPassword :exec
 UPDATE users
-SET password_hash = $2
+SET
+    password_hash = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;
+
+-- name: UpdateUserLastLogin :exec
+UPDATE users
+SET
+    last_login_at = CURRENT_TIMESTAMP,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;
+
+-- name: SetUserActive :exec
+UPDATE users
+SET
+    is_active = $2,
+    updated_at = CURRENT_TIMESTAMP
 WHERE id = $1;
 
 -- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = $1;
 
+-- name: ListUsers :many
+SELECT * FROM users
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
+
 -- name: CountUsers :one
 SELECT COUNT(*) FROM users;
-
--- name: CountUsersByRole :one
-SELECT COUNT(*) FROM users
-WHERE role = $1;

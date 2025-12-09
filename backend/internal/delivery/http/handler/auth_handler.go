@@ -8,22 +8,25 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/mehmetkilic/yazihanem/internal/delivery/http/middleware"
+	"github.com/mehmetkilic/yazihanem/internal/domain/repository"
 	infraCache "github.com/mehmetkilic/yazihanem/internal/infrastructure/cache"
 	"github.com/mehmetkilic/yazihanem/pkg/auth"
+	"github.com/mehmetkilic/yazihanem/pkg/tenant"
 )
 
 // AuthHandler handles authentication endpoints
 type AuthHandler struct {
 	jwtManager     *auth.JWTManager
 	sessionManager *infraCache.SessionManager
-	// userRepository will be added when user repository is implemented
+	userRepository repository.UserRepository
 }
 
 // NewAuthHandler creates a new authentication handler
-func NewAuthHandler(jwtManager *auth.JWTManager, sessionManager *infraCache.SessionManager) *AuthHandler {
+func NewAuthHandler(jwtManager *auth.JWTManager, sessionManager *infraCache.SessionManager, userRepo repository.UserRepository) *AuthHandler {
 	return &AuthHandler{
 		jwtManager:     jwtManager,
 		sessionManager: sessionManager,
+		userRepository: userRepo,
 	}
 }
 
@@ -53,7 +56,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	// Get tenant from context
-	tenant, err := middleware.GetTenantFromContext(c)
+	tenantEntity, err := middleware.GetTenantFromContext(c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error":   "Unauthorized",
@@ -61,24 +64,40 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		})
 	}
 
-	// TODO: Implement actual user authentication with database
-	// For now, this is a placeholder that demonstrates the flow
+	// Get user from Fiber context and set tenant in Go context
+	ctx := c.UserContext()
+	ctx = tenant.SetTenantInContext(ctx, tenantEntity)
 
-	// Mock user data - replace with actual database lookup
-	mockUserID := uuid.New().String()
-	mockRole := "admin"
+	// Fetch user from database by email
+	user, err := h.userRepository.GetByEmail(ctx, tenantEntity.ID, req.Email)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":   "Unauthorized",
+			"message": "Invalid credentials",
+		})
+	}
 
-	// Validate password (placeholder)
-	// In production: fetch user from DB and verify password hash
-	// hashedPassword := user.PasswordHash
-	// if err := auth.VerifyPassword(hashedPassword, req.Password); err != nil {
-	//     return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-	//         "error": "Invalid credentials",
-	//     })
-	// }
+	// Verify user is active
+	if !user.IsActive {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"error":   "Forbidden",
+			"message": "User account is inactive",
+		})
+	}
+
+	// Verify password
+	if err := auth.VerifyPassword(user.PasswordHash, req.Password); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":   "Unauthorized",
+			"message": "Invalid credentials",
+		})
+	}
+
+	// Update last login timestamp
+	_ = h.userRepository.UpdateLastLogin(ctx, tenantEntity.ID, user.ID)
 
 	// Generate JWT token
-	token, err := h.jwtManager.GenerateToken(mockUserID, tenant.ID, req.Email, mockRole)
+	token, err := h.jwtManager.GenerateToken(user.ID, tenantEntity.ID, user.Email, string(user.Role))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Internal Server Error",
@@ -89,10 +108,10 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// Create session
 	sessionID := uuid.New().String()
 	sessionData := &infraCache.SessionData{
-		UserID:   mockUserID,
-		TenantID: tenant.ID,
-		Email:    req.Email,
-		Role:     mockRole,
+		UserID:   user.ID,
+		TenantID: tenantEntity.ID,
+		Email:    user.Email,
+		Role:     string(user.Role),
 		Metadata: map[string]interface{}{
 			"ip":         c.IP(),
 			"user_agent": c.Get("User-Agent"),
@@ -100,8 +119,8 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		},
 	}
 
-	ctx := context.Background()
-	if err := h.sessionManager.Create(ctx, sessionID, sessionData); err != nil {
+	sessionCtx := context.Background()
+	if err := h.sessionManager.Create(sessionCtx, sessionID, sessionData); err != nil {
 		// Log error but don't fail the request
 		fmt.Printf("Failed to create session: %v\n", err)
 	}
@@ -115,10 +134,12 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		ExpiresIn:   int64(expiresIn),
 		TokenType:   "Bearer",
 		User: map[string]interface{}{
-			"id":     mockUserID,
-			"email":  req.Email,
-			"role":   mockRole,
-			"tenant": tenant.Name,
+			"id":         user.ID,
+			"email":      user.Email,
+			"first_name": user.FirstName,
+			"last_name":  user.LastName,
+			"role":       user.Role,
+			"tenant":     tenantEntity.Name,
 		},
 	})
 }
@@ -228,7 +249,7 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 		})
 	}
 
-	// Get user from context
+	// Get user and tenant from context
 	claims, err := middleware.GetUserClaimsFromContext(c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -236,15 +257,57 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 		})
 	}
 
-	// TODO: Implement actual password change with database
-	// 1. Fetch user from database
-	// 2. Verify old password
-	// 3. Hash new password
-	// 4. Update database
-	// 5. Invalidate all sessions except current
+	tenantEntity, err := middleware.GetTenantFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized",
+		})
+	}
+
+	// Set tenant context
+	ctx := c.UserContext()
+	ctx = tenant.SetTenantInContext(ctx, tenantEntity)
+
+	// Fetch current user from database
+	user, err := h.userRepository.GetByID(ctx, tenantEntity.ID, claims.UserID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error":   "Not Found",
+			"message": "User not found",
+		})
+	}
+
+	// Verify old password
+	if err := auth.VerifyPassword(user.PasswordHash, req.OldPassword); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "Bad Request",
+			"message": "Current password is incorrect",
+		})
+	}
+
+	// Hash new password
+	newPasswordHash, err := auth.HashPassword(req.NewPassword)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Internal Server Error",
+			"message": "Failed to hash password",
+		})
+	}
+
+	// Update password in database
+	if err := h.userRepository.UpdatePassword(ctx, tenantEntity.ID, user.ID, newPasswordHash); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Internal Server Error",
+			"message": "Failed to update password",
+		})
+	}
+
+	// Invalidate all sessions for this user
+	sessionCtx := context.Background()
+	_ = h.sessionManager.DeleteAllForUser(sessionCtx, user.ID)
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Password changed successfully",
-		"user_id": claims.UserID,
+		"user_id": user.ID,
 	})
 }

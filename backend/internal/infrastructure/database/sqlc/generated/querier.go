@@ -13,14 +13,24 @@ import (
 type Querier interface {
 	CountActiveTenants(ctx context.Context) (int64, error)
 	CountTenants(ctx context.Context) (int64, error)
+	CountUsers(ctx context.Context) (int64, error)
 	CreateTenant(ctx context.Context, arg CreateTenantParams) (*Tenant, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (*User, error)
 	DeleteTenant(ctx context.Context, id uuid.UUID) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetTenantByDomain(ctx context.Context, domain string) (*Tenant, error)
 	GetTenantByID(ctx context.Context, id uuid.UUID) (*Tenant, error)
 	GetTenantBySchemaName(ctx context.Context, schemaName string) (*Tenant, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	ListActiveTenants(ctx context.Context, arg ListActiveTenantsParams) ([]*Tenant, error)
 	ListTenants(ctx context.Context, arg ListTenantsParams) ([]*Tenant, error)
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]*User, error)
+	SetUserActive(ctx context.Context, arg SetUserActiveParams) error
 	UpdateTenant(ctx context.Context, arg UpdateTenantParams) (*Tenant, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (*User, error)
+	UpdateUserLastLogin(ctx context.Context, id uuid.UUID) error
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }
 
 var _ Querier = (*Queries)(nil)
