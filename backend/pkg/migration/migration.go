@@ -2,8 +2,6 @@ package migration
 
 import (
 	"context"
-	"database/sql"
-	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,17 +10,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-//go:embed schema/*.sql
-var migrationFiles embed.FS
-
 // Migrator handles database migrations
 type Migrator struct {
-	db *pgxpool.Pool
+	db             *pgxpool.Pool
+	migrationPath  string
 }
 
 // NewMigrator creates a new migrator instance
-func NewMigrator(db *pgxpool.Pool) *Migrator {
-	return &Migrator{db: db}
+func NewMigrator(db *pgxpool.Pool, migrationPath string) *Migrator {
+	return &Migrator{
+		db:            db,
+		migrationPath: migrationPath,
+	}
 }
 
 // MigratePublicSchema runs migrations for the public schema (tenants table)
@@ -47,8 +46,8 @@ func (m *Migrator) MigratePublicSchema(ctx context.Context) error {
 		return fmt.Errorf("failed to get current version: %w", err)
 	}
 
-	// Read migration files from embedded FS
-	entries, err := migrationFiles.ReadDir("schema")
+	// Read migration files from filesystem
+	entries, err := os.ReadDir(m.migrationPath)
 	if err != nil {
 		return fmt.Errorf("failed to read migration directory: %w", err)
 	}
@@ -82,7 +81,7 @@ func (m *Migrator) MigratePublicSchema(ctx context.Context) error {
 		}
 
 		// Read migration content
-		content, err := migrationFiles.ReadFile(filepath.Join("schema", filename))
+		content, err := os.ReadFile(filepath.Join(m.migrationPath, filename))
 		if err != nil {
 			return fmt.Errorf("failed to read migration file %s: %w", filename, err)
 		}
@@ -122,7 +121,8 @@ func (m *Migrator) CreateTenantSchema(ctx context.Context, schemaName string) er
 	}
 
 	// Read tenant schema template
-	content, err := migrationFiles.ReadFile("schema/000002_create_tenant_schema_template.up.sql")
+	templatePath := filepath.Join(m.migrationPath, "000002_create_tenant_schema_template.up.sql")
+	content, err := os.ReadFile(templatePath)
 	if err != nil {
 		return fmt.Errorf("failed to read tenant schema template: %w", err)
 	}
