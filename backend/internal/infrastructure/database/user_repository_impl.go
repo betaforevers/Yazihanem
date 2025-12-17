@@ -9,6 +9,7 @@ import (
 	"github.com/mehmetkilic/yazihanem/internal/domain/entity"
 	"github.com/mehmetkilic/yazihanem/internal/domain/repository"
 	generated "github.com/mehmetkilic/yazihanem/internal/infrastructure/database/sqlc/generated"
+	"github.com/mehmetkilic/yazihanem/pkg/dbutil"
 	"github.com/mehmetkilic/yazihanem/pkg/tenant"
 )
 
@@ -24,41 +25,15 @@ func NewUserRepository(pool *pgxpool.Pool) repository.UserRepository {
 	}
 }
 
-// setSearchPath sets the PostgreSQL search_path to the tenant schema
-func (r *UserRepositoryImpl) setSearchPath(ctx context.Context, schema string) error {
-	conn, err := r.pool.Acquire(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to acquire connection: %w", err)
-	}
-	defer conn.Release()
-
-	_, err = conn.Exec(ctx, fmt.Sprintf("SET search_path TO %s", schema))
-	if err != nil {
-		return fmt.Errorf("failed to set search_path: %w", err)
-	}
-
-	return nil
-}
-
 // Create creates a new user
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *entity.User) error {
-	schema, ok := tenant.GetSchemaFromContext(ctx)
-	if !ok {
-		return fmt.Errorf("tenant schema not found in context")
-	}
-
-	conn, err := r.pool.Acquire(ctx)
+	tconn, err := dbutil.AcquireTenantConn(ctx, r.pool)
 	if err != nil {
-		return fmt.Errorf("failed to acquire connection: %w", err)
+		return err
 	}
-	defer conn.Release()
+	defer tconn.Release()
 
-	_, err = conn.Exec(ctx, fmt.Sprintf("SET search_path TO %s", schema))
-	if err != nil {
-		return fmt.Errorf("failed to set search_path: %w", err)
-	}
-
-	queries := generated.New(conn)
+	queries := generated.New(tconn.Conn())
 	params := generated.CreateUserParams{
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,

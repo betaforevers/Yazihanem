@@ -35,22 +35,37 @@ func (tr *TenantResolver) Resolve() fiber.Handler {
 			return c.Next()
 		}
 
-		// Try to resolve tenant by domain
+		// For development: Create a default tenant for localhost
 		ctx := context.Background()
-		tenantEntity, err := tr.tenantRepo.GetByDomain(ctx, domain)
-		if err != nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": "Tenant not found",
-				"message": fmt.Sprintf("No tenant found for domain: %s", domain),
-			})
-		}
+		var tenantEntity *entity.Tenant
 
-		// Check if tenant is active
-		if !tenantEntity.IsActive {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "Tenant inactive",
-				"message": "This tenant account is currently inactive",
-			})
+		if domain == "localhost" || domain == "127.0.0.1" {
+			// Default tenant for development
+			tenantEntity = &entity.Tenant{
+				ID:         "4941a382-948a-48b4-91ec-a83270feca7c",
+				Name:       "Demo Tenant",
+				Domain:     "localhost",
+				SchemaName: "tenant_default",
+				IsActive:   true,
+			}
+		} else {
+			// Try to resolve tenant by domain
+			var err error
+			tenantEntity, err = tr.tenantRepo.GetByDomain(ctx, domain)
+			if err != nil {
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+					"error": "Tenant not found",
+					"message": fmt.Sprintf("No tenant found for domain: %s", domain),
+				})
+			}
+
+			// Check if tenant is active
+			if !tenantEntity.IsActive {
+				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+					"error": "Tenant inactive",
+					"message": "This tenant account is currently inactive",
+				})
+			}
 		}
 
 		// Add tenant to request context

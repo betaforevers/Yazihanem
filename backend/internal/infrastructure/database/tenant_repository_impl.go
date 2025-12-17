@@ -9,24 +9,35 @@ import (
 	"github.com/mehmetkilic/yazihanem/internal/domain/entity"
 	"github.com/mehmetkilic/yazihanem/internal/domain/repository"
 	generated "github.com/mehmetkilic/yazihanem/internal/infrastructure/database/sqlc/generated"
+	"github.com/mehmetkilic/yazihanem/pkg/migration"
 )
 
 // TenantRepositoryImpl implements repository.TenantRepository using sqlc
 type TenantRepositoryImpl struct {
-	pool    *pgxpool.Pool
-	queries *generated.Queries
+	pool      *pgxpool.Pool
+	queries   *generated.Queries
+	migrator  *migration.Migrator
 }
 
 // NewTenantRepository creates a new tenant repository
-func NewTenantRepository(pool *pgxpool.Pool) repository.TenantRepository {
+func NewTenantRepository(pool *pgxpool.Pool, migrator *migration.Migrator) repository.TenantRepository {
 	return &TenantRepositoryImpl{
-		pool:    pool,
-		queries: generated.New(pool),
+		pool:     pool,
+		queries:  generated.New(pool),
+		migrator: migrator,
 	}
 }
 
-// Create creates a new tenant
+// Create creates a new tenant and provisions its database schema
 func (r *TenantRepositoryImpl) Create(ctx context.Context, tenant *entity.Tenant) error {
+	// Start a transaction to ensure atomic tenant creation
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Create tenant record in public.tenants table
 	params := generated.CreateTenantParams{
 		Name:       tenant.Name,
 		SchemaName: tenant.SchemaName,
@@ -36,15 +47,30 @@ func (r *TenantRepositoryImpl) Create(ctx context.Context, tenant *entity.Tenant
 		MaxStorage: tenant.MaxStorage,
 	}
 
-	row, err := r.queries.CreateTenant(ctx, params)
+	queries := generated.New(tx)
+	row, err := queries.CreateTenant(ctx, params)
 	if err != nil {
-		return fmt.Errorf("failed to create tenant: %w", err)
+		return fmt.Errorf("failed to create tenant record: %w", err)
 	}
 
 	// Update tenant with generated values
 	tenant.ID = row.ID.String()
 	tenant.CreatedAt = row.CreatedAt
 	tenant.UpdatedAt = row.UpdatedAt
+
+	// Provision tenant schema with tables
+	if r.migrator != nil {
+		err = r.migrator.CreateTenantSchema(ctx, tenant.SchemaName)
+		if err != nil {
+			return fmt.Errorf("failed to provision tenant schema: %w", err)
+		}
+	}
+
+	// Commit transaction
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 
 	return nil
 }

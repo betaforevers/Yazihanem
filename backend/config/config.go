@@ -76,8 +76,10 @@ func Load() *Config {
 			Password:        getEnv("DB_PASSWORD", ""),
 			Database:        getEnv("DB_NAME", "yazihanem"),
 			SSLMode:         getEnv("DB_SSLMODE", "disable"),
-			MaxOpenConns:    getIntEnv("DB_MAX_OPEN_CONNS", 25),
-			MaxIdleConns:    getIntEnv("DB_MAX_IDLE_CONNS", 5),
+			// Optimized for 100 tenants with schema-based isolation
+			// Connection pinning requires higher pool size
+			MaxOpenConns:    getIntEnv("DB_MAX_OPEN_CONNS", 150),
+			MaxIdleConns:    getIntEnv("DB_MAX_IDLE_CONNS", 100),
 			ConnMaxLifetime: getDurationEnv("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		},
 		Redis: RedisConfig{
