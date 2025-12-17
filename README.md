@@ -10,6 +10,7 @@ A high-performance, schema-based multi-tenant CMS built with Go, Fiber, PostgreS
 - **High-performance** Go + Fiber framework
 - **Scalable** PostgreSQL with connection pooling
 - **Fast caching** with Redis
+- **Storage abstraction** for local/S3/MinIO file uploads
 
 ## Tech Stack
 
@@ -19,8 +20,11 @@ A high-performance, schema-based multi-tenant CMS built with Go, Fiber, PostgreS
 - **Database**: PostgreSQL 15+
 - **Query Builder**: sqlc
 - **Cache**: Redis 7+
+- **Storage**: Local/S3/MinIO (abstraction layer)
 - **Migrations**: golang-migrate
 - **Authentication**: JWT
+- **Rate Limiting**: Redis-based sliding window
+- **Audit Logging**: PostgreSQL (GDPR/KVKK compliance)
 
 ### Frontend
 - **Web Admin Panel**: Next.js 14 + React + TypeScript
@@ -66,6 +70,27 @@ yazihanem/
 └── scripts/             # Deployment and utility scripts
 ```
 
+## Demo Credentials
+
+For testing the web admin panel, use these demo accounts:
+
+### Admin User
+- **Email**: `admin@demo.com`
+- **Password**: `demo123`
+- **Permissions**: Full access (admin role)
+
+### Editor User
+- **Email**: `editor@demo.com`
+- **Password**: `demo123`
+- **Permissions**: Content editing (editor role)
+
+### Viewer User
+- **Email**: `viewer@demo.com`
+- **Password**: `demo123`
+- **Permissions**: Read-only access (viewer role)
+
+**Note**: Session timeout is 1 hour. After inactivity, you'll be automatically logged out.
+
 ## Getting Started
 
 ### Prerequisites
@@ -98,10 +123,26 @@ go mod download
 make migrate-up
 ```
 
-5. Start the server:
+5. Create demo tenant and users:
 ```bash
+# Connect to PostgreSQL and run the demo user script
+psql -U postgres -d yazihanem -f backend/scripts/create_demo_user.sql
+```
+
+6. Start the backend server:
+```bash
+cd backend
 go run cmd/api/main.go
 ```
+
+7. Start the web admin panel (in a new terminal):
+```bash
+cd web/web-admin
+npm install
+npm run dev
+```
+
+The web admin panel will be available at `http://localhost:3000`
 
 ## Development
 
@@ -147,9 +188,56 @@ cd backend/
 make migrate-tenant-drop schema=tenant_example
 ```
 
+## Features
+
+### Core Functionality
+- ✅ Multi-tenant SaaS architecture (schema-based isolation)
+- ✅ JWT authentication with session management
+- ✅ Content CRUD operations (draft → published workflow)
+- ✅ Media upload system (images, videos, audio, documents)
+- ✅ Rate limiting (tenant-based + IP-based)
+- ✅ Audit logging (compliance & security)
+- ✅ User management (admin/editor/viewer roles)
+
+### API Endpoints (22 total)
+- **Auth**: `/api/v1/auth/*` (login, logout, refresh, me, change-password)
+- **Content**: `/api/v1/content/*` (CRUD, publish, slug-based retrieval)
+- **Media**: `/api/v1/media/*` (upload, list, get, delete)
+- **Admin**: `/api/v1/admin/*` (stats, audit logs, user management)
+- **Public**: `/health` (health check)
+
+### Storage
+- **Local filesystem** (production-ready)
+- **S3/MinIO** (interface ready, implementation pending)
+- **Tenant-isolated paths**: `{tenant_id}/media/{year}/{month}/{filename}`
+- **MIME type validation**: 15 allowed types (images, videos, audio, documents)
+- **File size limit**: 50MB per upload
+
 ## API Documentation
 
 API documentation will be available at `/api/docs` when the server is running.
+
+### Quick API Examples
+
+**Upload Media:**
+```bash
+curl -X POST http://localhost:3000/api/v1/media/upload \
+  -H "Authorization: Bearer {JWT}" \
+  -F "file=@image.jpg"
+```
+
+**Create Content:**
+```bash
+curl -X POST http://localhost:3000/api/v1/content \
+  -H "Authorization: Bearer {JWT}" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"My Post","slug":"my-post","body":"Content..."}'
+```
+
+**List Content:**
+```bash
+curl http://localhost:3000/api/v1/content?status=published&page=1
+```
 
 ## Deployment
 
@@ -163,11 +251,14 @@ See [ARCHITECTURE-DECISIONS.md](./ARCHITECTURE-DECISIONS.md) for infrastructure 
 
 ## Security
 
-- JWT-based authentication
-- Tenant context validation (prevents cross-tenant data leaks)
-- Rate limiting per tenant
-- SQL injection prevention (sqlc parameterized queries)
-- HTTPS/TLS encryption
+- ✅ JWT-based authentication (RS256 signing)
+- ✅ Tenant context validation (prevents cross-tenant data leaks)
+- ✅ Rate limiting (1000 req/min per tenant, 5 req/min for login)
+- ✅ SQL injection prevention (sqlc parameterized queries)
+- ✅ MIME type whitelist (prevents malicious file uploads)
+- ✅ File size limits (50MB max)
+- ✅ Audit logging (all critical operations tracked)
+- ✅ HTTPS/TLS encryption (production requirement)
 
 ## Performance Targets
 

@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Ocean/Sea Theme - Fishing Industry Admin Panel */
+    --primary: 8 145 178;        /* Cyan 600 rgb(8, 145, 178) - #0891b2 */
+    --primary-dark: 14 116 144;  /* Cyan 700 rgb(14, 116, 144) - #0e7490 */
+    --primary-light: 34 211 238; /* Cyan 400 rgb(34, 211, 238) - #22d3ee */
+
+    --secondary: 6 182 212;      /* Cyan 500 rgb(6, 182, 212) - #06b6d4 */
+    --accent: 45 212 191;        /* Teal 400 rgb(45, 212, 191) - #2dd4bf */
+
+    --background: 255 255 255;   /* White rgb(255, 255, 255) */
+    --background-alt: 240 253 250; /* Teal 50 rgb(240, 253, 250) - #f0fdfa */
+    --foreground: 19 78 74;      /* Teal 900 rgb(19, 78, 74) - #134e4a */
+    --muted: 71 85 105;          /* Slate 600 rgb(71, 85, 105) */
+
+    --success: 16 185 129;       /* Green 500 rgb(16, 185, 129) */
+    --error: 239 68 68;          /* Red 500 rgb(239, 68, 68) */
+    --warning: 245 158 11;       /* Amber 500 rgb(245, 158, 11) */
+    --ocean: 12 74 110;          /* Deep ocean rgb(12, 74, 110) - #0c4a6e */
+    --border: 207 250 254;       /* Cyan 100 rgb(207, 250, 254) - #cffafe */
+  }
+
+  * {
+    @apply border-[rgb(var(--border))];
+  }
+
+  body {
+    @apply bg-[rgb(var(--background))] text-[rgb(var(--foreground))];
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "kern" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* Background Colors */
+  .bg-primary {
+    background-color: rgb(var(--primary));
+  }
+  .bg-primary-dark {
+    background-color: rgb(var(--primary-dark));
+  }
+  .bg-background-gray {
+    background-color: rgb(var(--background-alt));
+  }
+
+  /* Text Colors */
+  .text-primary {
+    color: rgb(var(--primary));
+  }
+  .text-foreground {
+    color: rgb(var(--foreground));
+  }
+  .text-muted {
+    color: rgb(var(--muted));
+  }
+  .text-success {
+    color: rgb(var(--success));
+  }
+  .text-error {
+    color: rgb(var(--error));
+  }
+
+  /* Border Colors */
+  .border-border {
+    border-color: rgb(var(--border));
+  }
+
+  /* Hover States */
+  .hover\:bg-primary-dark:hover {
+    background-color: rgb(var(--primary-dark));
+  }
+  .hover\:bg-primary\/5:hover {
+    background-color: rgb(var(--primary) / 0.05);
+  }
+  .hover\:bg-primary\/10:hover {
+    background-color: rgb(var(--primary) / 0.1);
+  }
+
+  /* Primary with opacity */
+  .bg-primary\/10 {
+    background-color: rgb(var(--primary) / 0.1);
+  }
+}

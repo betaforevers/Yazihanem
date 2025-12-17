@@ -25,4 +25,15 @@ var (
 	ErrInvalidAuthorID = errors.New("invalid author ID")
 	ErrInvalidStatus   = errors.New("invalid status")
 	ErrContentNotFound = errors.New("content not found")
+
+	// Media errors
+	ErrInvalidFilename      = errors.New("invalid filename")
+	ErrInvalidMimeType      = errors.New("invalid mime type")
+	ErrUnsupportedMimeType  = errors.New("unsupported mime type")
+	ErrInvalidFileSize      = errors.New("invalid file size")
+	ErrFileSizeTooLarge     = errors.New("file size exceeds maximum limit")
+	ErrInvalidStoragePath   = errors.New("invalid storage path")
+	ErrInvalidUploader      = errors.New("invalid uploader")
+	ErrMediaNotFound        = errors.New("media not found")
+	ErrFileUploadFailed     = errors.New("file upload failed")
 )

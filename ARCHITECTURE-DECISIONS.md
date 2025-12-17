@@ -977,8 +977,14 @@ fmt.Println("User logged in:", userID)
   - Author-based access control
   - Pagination ve filtering
   - Slug-based content retrieval
+- ✅ **Media upload system** (13 Aralık 2025)
+  - Multipart file upload
+  - Local/S3/MinIO storage abstraction
+  - MIME type validation (image, video, audio, document)
+  - File size limit (50MB)
+  - Tenant-isolated storage paths
+  - Owner/admin authorization
 - ⏳ User management endpoints (TODO)
-- ⏳ Media upload integration (TODO)
 - ⏳ Tenant onboarding flow (TODO)
 
 ---
@@ -990,7 +996,16 @@ fmt.Println("User logged in:", userID)
 Süre: 5-7 gün
 
 Görevler:
-  1. Rate limiting middleware ekle (1 gün)
+  1. Rate limiting middleware eksirklc@sirklc:~/Documents/GitHub/yazihanem$ cd ./backend/
+sirklc@sirklc:~/Documents/GitHub/yazihanem/backend$ go run ./cmd/api/main.go
+2025/12/15 03:40:36 Connecting to database...
+2025/12/15 03:40:36 ✓ Database connected
+2025/12/15 03:40:36 Connecting to Redis...
+2025/12/15 03:40:36 ✓ Redis connected
+2025/12/15 03:40:36 ✓ Storage initialized (type: local)
+2025/12/15 03:40:36 Starting server on port 3000
+2025/12/15 03:40:36 Failed to start server: failed to listen: listen tcp4 :3000: bind: address already in use
+exit status 1le (1 gün)
   2. Audit logging sistemi kur (1 gün)
   3. Unit tests yaz (domain logic) (2 gün)
   4. Integration tests yaz (API endpoints) (2 gün)
@@ -1385,6 +1400,97 @@ draft → published → archived
 
 ---
 
+#### 8. Media Upload Sistemi (YENİ - 13 Aralık 2025)
+**Dosyalar**:
+- `backend/internal/domain/entity/media.go` (YENİ)
+- `backend/internal/domain/repository/media_repository.go` (YENİ)
+- `backend/internal/infrastructure/database/media_repository_impl.go` (YENİ)
+- `backend/internal/delivery/http/handler/media_handler.go` (YENİ)
+- `backend/pkg/storage/storage.go` (YENİ - Storage interface)
+- `backend/pkg/storage/local.go` (YENİ - Local storage implementation)
+
+**Özellikler**:
+- ✅ Multipart form file upload (POST /api/v1/media/upload)
+- ✅ Storage abstraction layer (Local/S3/MinIO ready)
+- ✅ MIME type whitelist validation
+- ✅ File size validation (50MB max)
+- ✅ Tenant-isolated storage paths: `{tenant_id}/media/{year}/{month}/{filename}`
+- ✅ Owner/admin authorization for deletion
+- ✅ Automatic audit logging (media.upload, media.delete)
+- ✅ CRUD operations (Upload, Get, List, Delete)
+
+**Storage Path Format**:
+```
+uploads/
+  └── {tenant_id}/
+      └── media/
+          └── 2025/
+              └── 12/
+                  ├── uuid-1.jpg
+                  ├── uuid-2.pdf
+                  └── uuid-3.mp4
+```
+
+**Allowed MIME Types** (15 types):
+```yaml
+Images: image/jpeg, image/png, image/gif, image/webp, image/svg+xml
+Videos: video/mp4, video/webm, video/ogg
+Audio: audio/mpeg, audio/wav, audio/ogg
+Documents: application/pdf, text/plain, application/msword,
+           application/vnd.openxmlformats-officedocument.wordprocessingml.document
+```
+
+**API Endpoints**:
+```
+POST   /api/v1/media/upload        # Upload file (multipart/form-data)
+GET    /api/v1/media               # List media (filters: uploader_id, mime_type)
+GET    /api/v1/media/:id           # Get media by ID
+DELETE /api/v1/media/:id           # Delete media (owner/admin only)
+```
+
+**Request Example**:
+```bash
+curl -X POST http://localhost:3000/api/v1/media/upload \
+  -H "Authorization: Bearer {JWT}" \
+  -F "file=@image.jpg"
+
+Response (201):
+{
+  "message": "File uploaded successfully",
+  "media": {
+    "id": "550e8400-...",
+    "filename": "uuid.jpg",
+    "original_filename": "image.jpg",
+    "mime_type": "image/jpeg",
+    "size_bytes": 153600,
+    "storage_path": "tenant_123/media/2025/12/uuid.jpg",
+    "uploaded_by": "user_id",
+    "created_at": "2025-12-13T..."
+  }
+}
+```
+
+**Security Features**:
+- ✅ MIME type whitelist (prevents malicious file uploads)
+- ✅ File size limit enforcement
+- ✅ Tenant isolation (schema-based)
+- ✅ Owner/admin authorization for deletion
+- ✅ Audit logging for compliance
+
+**Storage Implementation Status**:
+- ✅ Local filesystem (production-ready)
+- ⏳ S3 (TODO - interface ready)
+- ⏳ MinIO (TODO - interface ready)
+
+**Future Enhancements** (Optional):
+- ⏳ Content-Media relationship (M2M table exists, endpoint missing)
+- ⏳ Image thumbnail generation
+- ⏳ WebP conversion
+- ⏳ CDN integration (Cloudflare/CloudFront)
+- ⏳ Presigned URL support (for direct S3 uploads)
+
+---
+
 ### 🔴 Kritik TODO'lar (Öncelik Sırası)
 
 ```yaml
@@ -1402,29 +1508,41 @@ draft → published → archived
    Dosya: backend/internal/delivery/http/handler/content_handler.go
    Durum: Production-ready, 8 endpoint, audit logging entegre
 
-4. Landing/Pazarlama Sayfası (İş Geliştirme - YÜKSEK)
+4. ✅ Media Upload System (Fonksiyonellik - TAMAMLANDI 13 Aralık 2025)
+   Dosya: backend/internal/delivery/http/handler/media_handler.go
+   Dosya: backend/pkg/storage/local.go
+   Durum: Production-ready, 4 endpoint, local storage implemented
+
+5. Landing/Pazarlama Sayfası (İş Geliştirme - YÜKSEK)
    Klasör: web-landing/
    Sayfalar: Ana sayfa, Features, Pricing, Contact
    Süre: 3-5 gün
    Neden öncelikli?: Müşteri kazanımı için gerekli
 
-5. User Management Endpoints (Fonksiyonellik - YÜKSEK)
+6. User Management Endpoints (Fonksiyonellik - YÜKSEK)
    Dosya: backend/internal/delivery/http/handler/user_handler.go
    Süre: 1-2 gün
    İşlevler: Create, update, delete users, role management
 
-6. Prometheus Metrics (Observability - YÜKSEK)
+7. Content-Media Relationship Endpoints (Fonksiyonellik - ORTA)
+   Endpoint: POST /api/v1/content/:id/media/:media_id (attach media to content)
+   Endpoint: DELETE /api/v1/content/:id/media/:media_id (detach)
+   Endpoint: GET /api/v1/content/:id/media (list attached media)
+   Süre: 0.5 gün
+   Not: Tablo zaten var (content_media), sadece endpoint lazım
+
+8. Prometheus Metrics (Observability - YÜKSEK)
    Dosya: backend/pkg/metrics/prometheus.go
    Süre: 1 gün
 
-7. Web Admin Panel (Yönetim - ORTA)
+9. Web Admin Panel (Yönetim - ORTA)
    Klasör: web-admin/
    Süre: 10-14 gün
 
-8. Automated Backup System (Güvenilirlik - ORTA)
-   Script: scripts/backup.sh
-   Cron: daily 02:00 UTC
-   Süre: 1 gün
+10. Automated Backup System (Güvenilirlik - ORTA)
+    Script: scripts/backup.sh
+    Cron: daily 02:00 UTC
+    Süre: 1 gün
 ```
 
 ---
@@ -1437,8 +1555,8 @@ Code Coverage: ~40% (target: 80%)
   - Infrastructure: 30%
   - Handlers: 20%
 
-Lines of Code: ~3,500
-  - Backend Go: 3,200
+Lines of Code: ~4,200
+  - Backend Go: 3,900
   - Config/Scripts: 300
 
 Dependencies: 15 (go.mod)
@@ -1449,10 +1567,11 @@ Migration Files: 6
   - Public schema: 4 (tenants, audit_logs)
   - Tenant template: 2
 
-API Endpoints: 18
+API Endpoints: 22
   - Auth: 5 (login, logout, refresh, me, change-password)
   - Admin: 4 (stats, audit-logs, audit-logs/stats, audit-logs/cleanup)
   - Content: 8 (create, list, my, get, get-by-slug, update, delete, publish)
+  - Media: 4 (upload, list, get, delete)
   - Public: 1 (health check)
 ```
 

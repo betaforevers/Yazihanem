@@ -35,7 +35,7 @@ func NewTenantHandler(
 type RegisterTenantRequest struct {
 	// Tenant information
 	TenantName string `json:"tenant_name" validate:"required,min=2,max=100"`
-	Domain     string `json:"domain" validate:"required,min=3,max=100"`
+	Domain     string `json:"domain" validate:"omitempty,min=3,max=100"` // Optional for localhost dev
 
 	// Owner information
 	OwnerEmail     string `json:"owner_email" validate:"required,email"`
@@ -67,13 +67,15 @@ func (h *TenantHandler) RegisterTenant(c *fiber.Ctx) error {
 
 	ctx := c.UserContext()
 
-	// Check if domain already exists
-	existingTenant, err := h.tenantRepo.GetByDomain(ctx, req.Domain)
-	if err == nil && existingTenant != nil {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error":   "Conflict",
-			"message": "Domain already exists",
-		})
+	// Check if domain already exists (only if domain is provided)
+	if req.Domain != "" {
+		existingTenant, err := h.tenantRepo.GetByDomain(ctx, req.Domain)
+		if err == nil && existingTenant != nil {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+				"error":   "Conflict",
+				"message": "Domain already exists",
+			})
+		}
 	}
 
 	// Create tenant (this will also create the schema and tables)

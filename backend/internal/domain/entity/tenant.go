@@ -22,8 +22,12 @@ type Tenant struct {
 
 // NewTenant creates a new tenant with generated schema name
 func NewTenant(name, domain string) *Tenant {
-	// Generate schema name from domain (remove special chars, lowercase)
-	schemaName := generateSchemaName(domain)
+	// Generate schema name from domain or name (remove special chars, lowercase)
+	source := domain
+	if source == "" {
+		source = name
+	}
+	schemaName := generateSchemaName(source)
 
 	return &Tenant{
 		Name:       name,
@@ -69,8 +73,6 @@ func (t *Tenant) Validate() error {
 	if t.SchemaName == "" {
 		return ErrInvalidSchemaName
 	}
-	if t.Domain == "" {
-		return ErrInvalidDomain
-	}
+	// Domain is optional for localhost development
 	return nil
 }
