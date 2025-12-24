@@ -124,7 +124,10 @@ yazihanem/
 │   │   │       ├── handler/         # HTTP endpoint handler'ları
 │   │   │       │   ├── auth_handler.go
 │   │   │       │   ├── audit_handler.go   # ✅ YENİ: Audit log endpoints
-│   │   │       │   └── content_handler.go # ✅ YENİ: Content CRUD endpoints
+│   │   │       │   ├── content_handler.go # ✅ YENİ: Content CRUD endpoints
+│   │   │       │   ├── media_handler.go   # ✅ YENİ: Media upload endpoints
+│   │   │       │   ├── user_handler.go    # ✅ YENİ: User management endpoints
+│   │   │       │   └── tenant_handler.go  # ✅ YENİ: Tenant onboarding endpoints
 │   │   │       └── middleware/      # HTTP middleware'ler
 │   │   │           ├── auth.go      # JWT validation
 │   │   │           ├── tenant.go    # Tenant resolution
@@ -138,7 +141,8 @@ yazihanem/
 │   │       │   │   └── generated/   # sqlc ile üretilen Go kodu
 │   │       │   ├── user_repository_impl.go
 │   │       │   ├── tenant_repository_impl.go
-│   │       │   └── content_repository_impl.go
+│   │       │   ├── content_repository_impl.go
+│   │       │   └── media_repository_impl.go    # ✅ YENİ: Media repository
 │   │       │
 │   │       └── cache/               # Redis implementasyonları
 │   │           ├── cache_manager.go
@@ -161,6 +165,9 @@ yazihanem/
 │   │   ├── ratelimit/
 │   │   │   ├── limiter.go           # ✅ YENİ: Redis-based rate limiter
 │   │   │   └── limiter_test.go      # ✅ YENİ: Rate limiter tests
+│   │   ├── storage/
+│   │   │   ├── storage.go           # ✅ YENİ: Storage interface (S3/MinIO/Local)
+│   │   │   └── local.go             # ✅ YENİ: Local filesystem storage
 │   │   └── tenant/
 │   │       └── context.go           # Tenant context helper'ları
 │   │
@@ -245,14 +252,20 @@ yazihanem/
 
 | Dosya | Sorumluluk | Kritiklik |
 |-------|------------|-----------|
-| `backend/cmd/api/main.go` | Uygulama başlatma, dependency injection | 🔴 Kritik |
+| `backend/cmd/api/main.go` | Uygulama başlatma, dependency injection, route definitions | 🔴 Kritik |
 | `backend/pkg/dbutil/tenant_conn.go` | Tenant şema switching | 🔴 Kritik |
-| `backend/pkg/ratelimit/limiter.go` | Rate limiting (YENİ - 10 Aralık) | 🔴 Kritik |
+| `backend/pkg/ratelimit/limiter.go` | Rate limiting (10 Aralık 2025) | 🔴 Kritik |
 | `backend/internal/delivery/http/middleware/tenant.go` | Tenant çözümleme | 🔴 Kritik |
-| `backend/internal/delivery/http/middleware/ratelimit.go` | Rate limit middleware (YENİ) | 🔴 Kritik |
+| `backend/internal/delivery/http/middleware/ratelimit.go` | Rate limit middleware | 🔴 Kritik |
+| `backend/internal/delivery/http/middleware/audit.go` | Audit logging middleware | 🔴 Kritik |
+| `backend/internal/delivery/http/handler/user_handler.go` | User management endpoints (21 Aralık 2025) | 🟡 Yüksek |
+| `backend/internal/delivery/http/handler/tenant_handler.go` | Tenant onboarding flow (21 Aralık 2025) | 🟡 Yüksek |
+| `backend/internal/delivery/http/handler/content_handler.go` | Content CRUD endpoints | 🟡 Yüksek |
+| `backend/internal/delivery/http/handler/media_handler.go` | Media upload system | 🟡 Yüksek |
 | `backend/pkg/migration/migration.go` | Tenant schema provisioning | 🟡 Yüksek |
-| `web-landing/src/app/page.tsx` | Ana pazarlama sayfası | 🟡 Yüksek |
-| `web-admin/src/app/dashboard/page.tsx` | Admin panel ana sayfa | 🟡 Yüksek |
+| `backend/pkg/storage/storage.go` | Storage abstraction interface | 🟡 Yüksek |
+| `web-landing/src/app/page.tsx` | Ana pazarlama sayfası (TODO) | 🟡 Yüksek |
+| `web-admin/src/app/dashboard/page.tsx` | Admin panel ana sayfa (TODO) | 🟡 Yüksek |
 | `backend/config/config.go` | Environment variable yönetimi | 🟢 Orta |
 
 ---
@@ -548,25 +561,25 @@ Deep Linking: go_router + Universal Links
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   Presentation                   │
+│                  Presentation                   │
 │  (Fiber Handlers, HTTP Middleware)              │
 └────────────────┬────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────┐
-│                   Use Cases                      │
+│                  Use Cases                      │
 │  (Business Logic - şu an handler'da)            │
 └────────────────┬────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────┐
-│                    Domain                        │
+│                   Domain                        │
 │  (Entities, Repository Interfaces)              │
 └────────────────┬────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────────┐
-│                Infrastructure                    │
+│                Infrastructure                   │
 │  (PostgreSQL, Redis, S3 implementations)        │
 └─────────────────────────────────────────────────┘
 ```
@@ -957,10 +970,10 @@ fmt.Println("User logged in:", userID)
 
 ---
 
-### 🔄 Devam Eden Faz
+### ✅ Son Tamamlanan Faz
 
-#### Faz 3: API Development (Kısmen Tamamlandı - %60)
-- ✅ Auth endpoints (login, logout, refresh, me)
+#### Faz 3: API Development (✅ TAMAMLANDI - %100)
+- ✅ Auth endpoints (login, logout, refresh, me, change-password)
 - ✅ **Rate limiting middleware** (10 Aralık 2025)
   - Redis sliding window algoritması
   - Tenant-bazlı rate limiting (1000 req/min)
@@ -984,8 +997,26 @@ fmt.Println("User logged in:", userID)
   - File size limit (50MB)
   - Tenant-isolated storage paths
   - Owner/admin authorization
-- ⏳ User management endpoints (TODO)
-- ⏳ Tenant onboarding flow (TODO)
+- ✅ **User management endpoints** (21 Aralık 2025)
+  - Full CRUD operations (Create, Read, Update, Delete)
+  - User listing with pagination
+  - Role management (admin, editor, viewer)
+  - Activate/Deactivate users
+  - Admin-only access control
+  - Self-deletion/deactivation prevention
+- ✅ **Tenant onboarding flow** (21 Aralık 2025)
+  - Public registration endpoint
+  - Automatic schema provisioning
+  - Owner user creation with admin role
+  - Domain uniqueness validation
+  - Audit logging integration
+- ✅ **Industry-specific modules** (21 Aralık 2025)
+  - Stock Management (CRUD endpoints)
+  - Cold Chain Monitoring (CRUD endpoints)
+  - Shipments Tracking (CRUD endpoints)
+  - Document Management (CRUD endpoints)
+  - Certificate Management (CRUD endpoints)
+  - Reports Generation (Create, List, Delete)
 
 ---
 
@@ -1491,6 +1522,232 @@ Response (201):
 
 ---
 
+#### 9. User Management System (YENİ - 21 Aralık 2025)
+**Dosyalar**:
+- `backend/internal/delivery/http/handler/user_handler.go` (YENİ)
+- `backend/internal/domain/repository/user_repository.go`
+- `backend/internal/infrastructure/database/user_repository_impl.go`
+
+**Özellikler**:
+- ✅ Full CRUD operations (Create, Read, Update, Delete)
+- ✅ User listing with pagination (default: 20, max: 100)
+- ✅ Role management (admin, editor, viewer)
+- ✅ Activate/Deactivate users
+- ✅ Admin-only access control
+- ✅ Self-deletion/deactivation prevention
+- ✅ Automatic audit logging integration
+
+**API Endpoints** (7 endpoints - admin only):
+```
+POST   /api/v1/admin/users              # Create user (admin only)
+GET    /api/v1/admin/users              # List users with pagination
+GET    /api/v1/admin/users/:id          # Get user by ID
+PUT    /api/v1/admin/users/:id          # Update user (email, name, role)
+DELETE /api/v1/admin/users/:id          # Delete user (prevents self-deletion)
+PATCH  /api/v1/admin/users/:id/activate # Activate user
+PATCH  /api/v1/admin/users/:id/deactivate # Deactivate user (prevents self-deactivation)
+```
+
+**Request/Response Examples**:
+
+Create User:
+```json
+POST /api/v1/admin/users
+{
+  "email": "user@example.com",
+  "password": "securepassword123",
+  "first_name": "John",
+  "last_name": "Doe",
+  "role": "editor"  // admin, editor, or viewer
+}
+
+Response (201 Created):
+{
+  "message": "User created successfully",
+  "user": {
+    "id": "550e8400-...",
+    "tenant_id": "...",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "role": "editor",
+    "is_active": true,
+    "created_at": "2025-12-21T...",
+    "updated_at": "2025-12-21T..."
+  }
+}
+```
+
+List Users:
+```json
+GET /api/v1/admin/users?page=1&page_size=20
+
+Response (200 OK):
+{
+  "users": [...],
+  "page": 1,
+  "page_size": 20,
+  "total_count": 45
+}
+```
+
+**Security Features**:
+- ✅ Admin-only access (RequireRole middleware)
+- ✅ Password hashing (bcrypt)
+- ✅ Self-deletion prevention
+- ✅ Self-deactivation prevention
+- ✅ Tenant isolation (users in tenant schema)
+- ✅ Audit logging for all operations
+
+**Validation Rules**:
+- Email: Required, valid email format
+- Password: Minimum 8 characters
+- Role: Must be one of: admin, editor, viewer
+- First/Last Name: Required
+
+---
+
+#### 10. Tenant Onboarding Flow (YENİ - 21 Aralık 2025)
+**Dosyalar**:
+- `backend/internal/delivery/http/handler/tenant_handler.go` (YENİ)
+- `backend/internal/domain/repository/tenant_repository.go`
+- `backend/internal/infrastructure/database/tenant_repository_impl.go`
+
+**Özellikler**:
+- ✅ Public registration endpoint (no authentication required)
+- ✅ Automatic PostgreSQL schema creation
+- ✅ Automatic tenant table provisioning (users, content, media, etc.)
+- ✅ Owner user creation with admin role
+- ✅ Domain uniqueness validation (optional for localhost dev)
+- ✅ Transaction-based atomic operation (rollback on failure)
+- ✅ Audit logging integration
+
+**API Endpoint** (1 public endpoint):
+```
+POST /api/v1/register  # Public tenant registration (no tenant middleware)
+```
+
+**Request/Response Example**:
+
+Register Tenant:
+```json
+POST /api/v1/register
+{
+  "tenant_name": "Acme Corporation",
+  "domain": "acme.example.com",  // Optional for localhost dev
+  "owner_email": "admin@acme.com",
+  "owner_password": "securepassword123",
+  "owner_first_name": "Jane",
+  "owner_last_name": "Smith"
+}
+
+Response (201 Created):
+{
+  "message": "Tenant registered successfully",
+  "tenant": {
+    "id": "550e8400-...",
+    "name": "Acme Corporation",
+    "domain": "acme.example.com"
+  },
+  "owner": {
+    "id": "660e8400-...",
+    "email": "admin@acme.com",
+    "first_name": "Jane",
+    "last_name": "Smith"
+  }
+}
+```
+
+**Flow Diagram**:
+```
+1. Client → POST /api/v1/register
+2. Validate request body
+3. Check domain uniqueness (if provided)
+4. BEGIN TRANSACTION
+   ├─ Create tenant record in public.tenants
+   ├─ Generate schema name (tenant_{uuid})
+   ├─ CREATE SCHEMA tenant_xxx
+   ├─ Execute template SQL (create users, content, media tables)
+   ├─ Hash owner password
+   ├─ Create owner user in tenant schema (role: admin)
+   └─ COMMIT TRANSACTION
+5. Log audit event (tenant.create)
+6. Return tenant + owner info
+```
+
+**Security Features**:
+- ✅ Domain uniqueness enforcement
+- ✅ Password hashing (bcrypt)
+- ✅ SQL injection prevention (schema name regex validation)
+- ✅ Atomic transaction (all-or-nothing)
+- ✅ Automatic owner gets admin role
+
+**Error Handling**:
+- 409 Conflict: Domain already exists
+- 500 Internal Server Error: Schema creation failed (auto-rollback)
+- 400 Bad Request: Invalid request body
+
+---
+
+#### 11. Industry-Specific Modules (YENİ - 21 Aralık 2025)
+**Note**: These endpoints were discovered in `main.go` but not documented in the architecture.
+
+**Stock Management** (4 endpoints):
+```
+GET    /api/v1/stock       # List stock items
+POST   /api/v1/stock       # Create stock item
+PUT    /api/v1/stock/:id   # Update stock item
+DELETE /api/v1/stock/:id   # Delete stock item
+```
+
+**Cold Chain Monitoring** (4 endpoints):
+```
+GET    /api/v1/cold-chain       # List cold chain records
+POST   /api/v1/cold-chain       # Create cold chain record
+PUT    /api/v1/cold-chain/:id   # Update cold chain record
+DELETE /api/v1/cold-chain/:id   # Delete cold chain record
+```
+
+**Shipments Tracking** (4 endpoints):
+```
+GET    /api/v1/shipments       # List shipments
+POST   /api/v1/shipments       # Create shipment
+PUT    /api/v1/shipments/:id   # Update shipment
+DELETE /api/v1/shipments/:id   # Delete shipment
+```
+
+**Document Management** (4 endpoints):
+```
+GET    /api/v1/documents       # List documents
+POST   /api/v1/documents       # Create document
+PUT    /api/v1/documents/:id   # Update document
+DELETE /api/v1/documents/:id   # Delete document
+```
+
+**Certificate Management** (4 endpoints):
+```
+GET    /api/v1/certificates       # List certificates
+POST   /api/v1/certificates       # Create certificate
+PUT    /api/v1/certificates/:id   # Update certificate
+DELETE /api/v1/certificates/:id   # Delete certificate
+```
+
+**Reports Generation** (3 endpoints):
+```
+GET    /api/v1/reports       # List reports
+POST   /api/v1/reports       # Create report
+DELETE /api/v1/reports/:id   # Delete report
+```
+
+**Implementation Note**:
+- ⚠️ These endpoints are implemented inline in `main.go` (not using handler pattern)
+- ⚠️ No input validation
+- ⚠️ No audit logging
+- ⚠️ Direct SQL queries (not using repository pattern)
+- 🔴 **Recommendation**: Refactor into proper handler/repository pattern
+
+---
+
 ### 🔴 Kritik TODO'lar (Öncelik Sırası)
 
 ```yaml
@@ -1513,33 +1770,36 @@ Response (201):
    Dosya: backend/pkg/storage/local.go
    Durum: Production-ready, 4 endpoint, local storage implemented
 
-5. Landing/Pazarlama Sayfası (İş Geliştirme - YÜKSEK)
+5. ✅ User Management Endpoints (Fonksiyonellik - TAMAMLANDI 21 Aralık 2025)
+   Dosya: backend/internal/delivery/http/handler/user_handler.go
+   Durum: Production-ready, 7 endpoint, role management, activate/deactivate
+
+6. ✅ Tenant Onboarding Flow (Fonksiyonellik - TAMAMLANDI 21 Aralık 2025)
+   Dosya: backend/internal/delivery/http/handler/tenant_handler.go
+   Durum: Production-ready, public registration endpoint, auto schema provisioning
+
+7. Landing/Pazarlama Sayfası (İş Geliştirme - YÜKSEK ÖNCELİK)
    Klasör: web-landing/
    Sayfalar: Ana sayfa, Features, Pricing, Contact
    Süre: 3-5 gün
    Neden öncelikli?: Müşteri kazanımı için gerekli
 
-6. User Management Endpoints (Fonksiyonellik - YÜKSEK)
-   Dosya: backend/internal/delivery/http/handler/user_handler.go
-   Süre: 1-2 gün
-   İşlevler: Create, update, delete users, role management
-
-7. Content-Media Relationship Endpoints (Fonksiyonellik - ORTA)
+8. Content-Media Relationship Endpoints (Fonksiyonellik - ORTA)
    Endpoint: POST /api/v1/content/:id/media/:media_id (attach media to content)
    Endpoint: DELETE /api/v1/content/:id/media/:media_id (detach)
    Endpoint: GET /api/v1/content/:id/media (list attached media)
    Süre: 0.5 gün
    Not: Tablo zaten var (content_media), sadece endpoint lazım
 
-8. Prometheus Metrics (Observability - YÜKSEK)
+9. Prometheus Metrics (Observability - YÜKSEK)
    Dosya: backend/pkg/metrics/prometheus.go
    Süre: 1 gün
 
-9. Web Admin Panel (Yönetim - ORTA)
-   Klasör: web-admin/
-   Süre: 10-14 gün
+10. Web Admin Panel (Yönetim - ORTA)
+    Klasör: web-admin/
+    Süre: 10-14 gün
 
-10. Automated Backup System (Güvenilirlik - ORTA)
+11. Automated Backup System (Güvenilirlik - ORTA)
     Script: scripts/backup.sh
     Cron: daily 02:00 UTC
     Süre: 1 gün
@@ -1567,12 +1827,20 @@ Migration Files: 6
   - Public schema: 4 (tenants, audit_logs)
   - Tenant template: 2
 
-API Endpoints: 22
+API Endpoints: 58
   - Auth: 5 (login, logout, refresh, me, change-password)
   - Admin: 4 (stats, audit-logs, audit-logs/stats, audit-logs/cleanup)
   - Content: 8 (create, list, my, get, get-by-slug, update, delete, publish)
   - Media: 4 (upload, list, get, delete)
-  - Public: 1 (health check)
+  - Users: 7 (create, list, get, update, delete, activate, deactivate)
+  - Tenant: 1 (register - public endpoint)
+  - Stock: 4 (create, list, update, delete)
+  - Cold Chain: 4 (create, list, update, delete)
+  - Shipments: 4 (create, list, update, delete)
+  - Documents: 4 (create, list, update, delete)
+  - Certificates: 4 (create, list, update, delete)
+  - Reports: 3 (create, list, delete)
+  - Public: 2 (health check, API info)
 ```
 
 ---
