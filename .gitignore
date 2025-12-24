@@ -32,6 +32,9 @@ backend/build/
 # Migration tracking
 backend/migrations/**/*.dirty
 
+# User uploads (media files)
+backend/uploads/
+
 # ===========================
 # WEB ADMIN (Next.js + React)
 # ===========================
