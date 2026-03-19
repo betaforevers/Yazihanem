@@ -1,0 +1,70 @@
+name: yazihanem_mobile
+description: "Yazıhanem - Multi-Tenant İçerik Yönetim Sistemi"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Networking
+  dio: ^5.7.0
+  connectivity_plus: ^6.1.4
+
+  # Routing
+  go_router: ^14.8.1
+
+  # Local Storage
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.2.4
+
+  # UI & UX
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  image_picker: ^1.1.2
+  file_picker: ^8.1.7
+
+  # Utility
+  intl: ^0.20.2
+  logger: ^2.5.0
+  url_launcher: ^6.3.1
+
+  # PDF
+  pdf: ^3.11.0
+  printing: ^5.13.1
+  path_provider: ^2.1.4
+  share_plus: ^10.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Testing
+  mockito: ^5.4.6
+  mocktail: ^1.0.4
+
+  # Code Generation
+  build_runner: ^2.4.14
+  freezed: ^3.0.0
+  json_serializable: ^6.9.4
+  riverpod_generator: ^2.6.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/

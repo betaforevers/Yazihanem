@@ -769,6 +769,331 @@ func main() {
 		return c.JSON(fiber.Map{"message": "Deleted"})
 	})
 
+	// ─────────────── Fish routes ───────────────
+	fishRoutes := protected.Group("/fish")
+
+	fishRoutes.Get("/", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		ctx := c.UserContext()
+		query := fmt.Sprintf(`SELECT id, tur, birim_turu, miktar, created_at, updated_at FROM %s.fish ORDER BY created_at DESC`, tenant.SchemaName)
+		rows, err := pool.Pool.Query(ctx, query)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch fish"})
+		}
+		defer rows.Close()
+
+		var items []map[string]interface{}
+		for rows.Next() {
+			var id, tur, birimTuru string
+			var miktar float64
+			var createdAt, updatedAt time.Time
+			if err := rows.Scan(&id, &tur, &birimTuru, &miktar, &createdAt, &updatedAt); err != nil {
+				continue
+			}
+			items = append(items, map[string]interface{}{
+				"id": id, "tur": tur, "birim_turu": birimTuru, "miktar": miktar,
+				"created_at": createdAt, "updated_at": updatedAt,
+			})
+		}
+		return c.JSON(fiber.Map{"items": items, "total": len(items)})
+	})
+
+	fishRoutes.Post("/", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		var input struct {
+			Tur      string  `json:"tur"`
+			BirimTuru string `json:"birim_turu"`
+			Miktar   float64 `json:"miktar"`
+		}
+		if err := c.BodyParser(&input); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+		}
+		ctx := c.UserContext()
+		var id string
+		var createdAt, updatedAt time.Time
+		err := pool.Pool.QueryRow(ctx, fmt.Sprintf(`INSERT INTO %s.fish (tur, birim_turu, miktar) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`, tenant.SchemaName),
+			input.Tur, input.BirimTuru, input.Miktar).Scan(&id, &createdAt, &updatedAt)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create fish"})
+		}
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": id, "tur": input.Tur, "birim_turu": input.BirimTuru, "miktar": input.Miktar,
+			"created_at": createdAt, "updated_at": updatedAt,
+		})
+	})
+
+	fishRoutes.Put("/:id", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		id := c.Params("id")
+		var input struct {
+			Tur      string  `json:"tur"`
+			BirimTuru string `json:"birim_turu"`
+			Miktar   float64 `json:"miktar"`
+		}
+		if err := c.BodyParser(&input); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+		}
+		ctx := c.UserContext()
+		_, err := pool.Pool.Exec(ctx, fmt.Sprintf(`UPDATE %s.fish SET tur=$1, birim_turu=$2, miktar=$3, updated_at=CURRENT_TIMESTAMP WHERE id=$4`, tenant.SchemaName),
+			input.Tur, input.BirimTuru, input.Miktar, id)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update fish"})
+		}
+		return c.JSON(fiber.Map{"message": "Updated"})
+	})
+
+	fishRoutes.Delete("/:id", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		pool.Pool.Exec(c.UserContext(), fmt.Sprintf(`DELETE FROM %s.fish WHERE id = $1`, tenant.SchemaName), c.Params("id"))
+		return c.JSON(fiber.Map{"message": "Deleted"})
+	})
+
+	// ─────────────── Boat routes ───────────────
+	boatRoutes := protected.Group("/boats")
+
+	boatRoutes.Get("/", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		ctx := c.UserContext()
+		rows, err := pool.Pool.Query(ctx, fmt.Sprintf(`SELECT id, ad, komisyon_yuzde, created_at, updated_at FROM %s.boats ORDER BY created_at DESC`, tenant.SchemaName))
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch boats"})
+		}
+		defer rows.Close()
+
+		var items []map[string]interface{}
+		for rows.Next() {
+			var id, ad string
+			var komisyonYuzde float64
+			var createdAt, updatedAt time.Time
+			if err := rows.Scan(&id, &ad, &komisyonYuzde, &createdAt, &updatedAt); err != nil {
+				continue
+			}
+			items = append(items, map[string]interface{}{
+				"id": id, "ad": ad, "komisyon_yuzde": komisyonYuzde,
+				"created_at": createdAt, "updated_at": updatedAt,
+			})
+		}
+		return c.JSON(fiber.Map{"items": items, "total": len(items)})
+	})
+
+	boatRoutes.Post("/", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		var input struct {
+			Ad            string  `json:"ad"`
+			KomisyonYuzde float64 `json:"komisyon_yuzde"`
+		}
+		if err := c.BodyParser(&input); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+		}
+		ctx := c.UserContext()
+		var id string
+		var createdAt, updatedAt time.Time
+		err := pool.Pool.QueryRow(ctx, fmt.Sprintf(`INSERT INTO %s.boats (ad, komisyon_yuzde) VALUES ($1, $2) RETURNING id, created_at, updated_at`, tenant.SchemaName),
+			input.Ad, input.KomisyonYuzde).Scan(&id, &createdAt, &updatedAt)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create boat"})
+		}
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": id, "ad": input.Ad, "komisyon_yuzde": input.KomisyonYuzde,
+			"created_at": createdAt, "updated_at": updatedAt,
+		})
+	})
+
+	boatRoutes.Put("/:id", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		id := c.Params("id")
+		var input struct {
+			Ad            string  `json:"ad"`
+			KomisyonYuzde float64 `json:"komisyon_yuzde"`
+		}
+		if err := c.BodyParser(&input); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+		}
+		_, err := pool.Pool.Exec(c.UserContext(), fmt.Sprintf(`UPDATE %s.boats SET ad=$1, komisyon_yuzde=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$3`, tenant.SchemaName),
+			input.Ad, input.KomisyonYuzde, id)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update boat"})
+		}
+		return c.JSON(fiber.Map{"message": "Updated"})
+	})
+
+	boatRoutes.Delete("/:id", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		pool.Pool.Exec(c.UserContext(), fmt.Sprintf(`DELETE FROM %s.boats WHERE id = $1`, tenant.SchemaName), c.Params("id"))
+		return c.JSON(fiber.Map{"message": "Deleted"})
+	})
+
+	// ─────────────── Auction routes ───────────────
+	auctionRoutes := protected.Group("/auctions")
+
+	// List all auctions
+	auctionRoutes.Get("/", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		ctx := c.UserContext()
+		rows, err := pool.Pool.Query(ctx, fmt.Sprintf(`
+			SELECT a.id, a.fis_no, a.mezat_tarihi, a.durum, a.created_at,
+				COALESCE(SUM(ai.toplam_fiyat), 0) as toplam_tutar,
+				COUNT(ai.id) as kalem_sayisi
+			FROM %s.auctions a
+			LEFT JOIN %s.auction_items ai ON a.id = ai.auction_id
+			GROUP BY a.id, a.fis_no, a.mezat_tarihi, a.durum, a.created_at
+			ORDER BY a.created_at DESC
+		`, tenant.SchemaName, tenant.SchemaName))
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch auctions"})
+		}
+		defer rows.Close()
+
+		var items []map[string]interface{}
+		for rows.Next() {
+			var id, fisNo, durum string
+			var mezatTarihi, createdAt time.Time
+			var toplamTutar float64
+			var kalemSayisi int
+			if err := rows.Scan(&id, &fisNo, &mezatTarihi, &durum, &createdAt, &toplamTutar, &kalemSayisi); err != nil {
+				continue
+			}
+			items = append(items, map[string]interface{}{
+				"id": id, "fis_no": fisNo, "mezat_tarihi": mezatTarihi, "durum": durum,
+				"created_at": createdAt, "toplam_tutar": toplamTutar, "kalem_sayisi": kalemSayisi,
+			})
+		}
+		return c.JSON(fiber.Map{"items": items, "total": len(items)})
+	})
+
+	// Create new auction
+	auctionRoutes.Post("/", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		ctx := c.UserContext()
+
+		// Auto-generate fis_no
+		var count int
+		pool.Pool.QueryRow(ctx, fmt.Sprintf(`SELECT COUNT(*) + 1 FROM %s.auctions`, tenant.SchemaName)).Scan(&count)
+		fisNo := fmt.Sprintf("MZT-%d-%03d", time.Now().Year(), count)
+
+		var id string
+		var mezatTarihi, createdAt time.Time
+		err := pool.Pool.QueryRow(ctx, fmt.Sprintf(`INSERT INTO %s.auctions (fis_no) VALUES ($1) RETURNING id, mezat_tarihi, created_at`, tenant.SchemaName),
+			fisNo).Scan(&id, &mezatTarihi, &createdAt)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to create auction"})
+		}
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": id, "fis_no": fisNo, "mezat_tarihi": mezatTarihi, "durum": "acik",
+			"created_at": createdAt, "toplam_tutar": 0, "kalem_sayisi": 0,
+		})
+	})
+
+	// Get auction with items
+	auctionRoutes.Get("/:id", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		auctionID := c.Params("id")
+		ctx := c.UserContext()
+
+		// Get auction
+		var id, fisNo, durum string
+		var mezatTarihi, createdAt time.Time
+		err := pool.Pool.QueryRow(ctx, fmt.Sprintf(`SELECT id, fis_no, mezat_tarihi, durum, created_at FROM %s.auctions WHERE id = $1`, tenant.SchemaName),
+			auctionID).Scan(&id, &fisNo, &mezatTarihi, &durum, &createdAt)
+		if err != nil {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Auction not found"})
+		}
+
+		// Get items with fish and boat details
+		rows, err := pool.Pool.Query(ctx, fmt.Sprintf(`
+			SELECT ai.id, ai.miktar, ai.birim_fiyat, ai.toplam_fiyat,
+				f.id, f.tur, f.birim_turu, f.miktar,
+				b.id, b.ad, b.komisyon_yuzde
+			FROM %s.auction_items ai
+			JOIN %s.fish f ON ai.fish_id = f.id
+			JOIN %s.boats b ON ai.boat_id = b.id
+			WHERE ai.auction_id = $1
+			ORDER BY ai.created_at ASC
+		`, tenant.SchemaName, tenant.SchemaName, tenant.SchemaName), auctionID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch items"})
+		}
+		defer rows.Close()
+
+		var kalemler []map[string]interface{}
+		var toplamTutar float64
+		for rows.Next() {
+			var aiID string
+			var aiMiktar, aiBirimFiyat, aiToplamFiyat float64
+			var fID, fTur, fBirimTuru string
+			var fMiktar float64
+			var bID, bAd string
+			var bKomisyon float64
+			if err := rows.Scan(&aiID, &aiMiktar, &aiBirimFiyat, &aiToplamFiyat, &fID, &fTur, &fBirimTuru, &fMiktar, &bID, &bAd, &bKomisyon); err != nil {
+				continue
+			}
+			toplamTutar += aiToplamFiyat
+			kalemler = append(kalemler, map[string]interface{}{
+				"id": aiID, "miktar": aiMiktar, "birim_fiyat": aiBirimFiyat, "toplam_fiyat": aiToplamFiyat,
+				"balik": map[string]interface{}{"id": fID, "tur": fTur, "birim_turu": fBirimTuru, "miktar": fMiktar},
+				"tekne": map[string]interface{}{"id": bID, "ad": bAd, "komisyon_yuzde": bKomisyon},
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"id": id, "fis_no": fisNo, "mezat_tarihi": mezatTarihi, "durum": durum,
+			"created_at": createdAt, "toplam_tutar": toplamTutar, "kalemler": kalemler,
+		})
+	})
+
+	// Add item to auction
+	auctionRoutes.Post("/:id/items", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		auctionID := c.Params("id")
+		var input struct {
+			FishID    string  `json:"fish_id"`
+			BoatID    string  `json:"boat_id"`
+			Miktar    float64 `json:"miktar"`
+			BirimFiyat float64 `json:"birim_fiyat"`
+		}
+		if err := c.BodyParser(&input); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+		}
+		toplamFiyat := input.Miktar * input.BirimFiyat
+		var id string
+		err := pool.Pool.QueryRow(c.UserContext(), fmt.Sprintf(`
+			INSERT INTO %s.auction_items (auction_id, fish_id, boat_id, miktar, birim_fiyat, toplam_fiyat)
+			VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+		`, tenant.SchemaName), auctionID, input.FishID, input.BoatID, input.Miktar, input.BirimFiyat, toplamFiyat).Scan(&id)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to add item"})
+		}
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"id": id, "auction_id": auctionID, "fish_id": input.FishID, "boat_id": input.BoatID,
+			"miktar": input.Miktar, "birim_fiyat": input.BirimFiyat, "toplam_fiyat": toplamFiyat,
+		})
+	})
+
+	// Remove item from auction
+	auctionRoutes.Delete("/:id/items/:itemId", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		pool.Pool.Exec(c.UserContext(), fmt.Sprintf(`DELETE FROM %s.auction_items WHERE id = $1 AND auction_id = $2`, tenant.SchemaName),
+			c.Params("itemId"), c.Params("id"))
+		return c.JSON(fiber.Map{"message": "Item removed"})
+	})
+
+	// Close auction
+	auctionRoutes.Patch("/:id/close", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		_, err := pool.Pool.Exec(c.UserContext(), fmt.Sprintf(`UPDATE %s.auctions SET durum = 'kapali' WHERE id = $1`, tenant.SchemaName), c.Params("id"))
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to close auction"})
+		}
+		return c.JSON(fiber.Map{"message": "Auction closed"})
+	})
+
+	// Delete auction
+	auctionRoutes.Delete("/:id", func(c *fiber.Ctx) error {
+		tenant, _ := middleware.GetTenantFromContext(c)
+		pool.Pool.Exec(c.UserContext(), fmt.Sprintf(`DELETE FROM %s.auctions WHERE id = $1`, tenant.SchemaName), c.Params("id"))
+		return c.JSON(fiber.Map{"message": "Deleted"})
+	})
+
 	// Start server with graceful shutdown
 	port := cfg.Server.Port
 	serverAddr := fmt.Sprintf(":%s", port)
