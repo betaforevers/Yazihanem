@@ -6,7 +6,7 @@ import 'package:yazihanem_mobile/features/fish/presentation/widgets/fish_card.da
 import 'package:yazihanem_mobile/features/fish/providers/fish_provider.dart';
 import 'package:yazihanem_mobile/shared/theme/app_colors.dart';
 import 'package:yazihanem_mobile/shared/theme/app_spacing.dart';
-import 'package:yazihanem_mobile/shared/theme/app_text_styles.dart';
+import 'package:yazihanem_mobile/shared/widgets/shimmer_list.dart';
 
 /// Fish list screen with search, delete, and FAB.
 class FishListScreen extends ConsumerStatefulWidget {
@@ -81,24 +81,22 @@ class _FishListScreenState extends ConsumerState<FishListScreen> {
 
   Widget _buildBody(FishListState state, List<FishModel> filtered) {
     if (state.isLoading && state.items.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+      return const ShimmerList(itemCount: 6, itemHeight: 80);
+    }
+
+    if (state.error != null && state.items.isEmpty) {
+      return ErrorRetryWidget(
+        message: 'Balıklar yüklenemedi\n${state.error}',
+        onRetry: () => ref.read(fishListProvider.notifier).load(),
+      );
     }
 
     if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.set_meal_rounded,
-                size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _searchQuery.isEmpty ? 'Henüz balık kaydı yok' : 'Sonuç bulunamadı',
-              style: AppTextStyles.headlineSmall.copyWith(color: AppColors.textMuted),
-            ),
-          ],
-        ),
+      return EmptyStateWidget(
+        icon: Icons.set_meal_rounded,
+        message: _searchQuery.isEmpty ? 'Henüz balık kaydı yok' : '"$_searchQuery" için sonuç bulunamadı',
+        actionLabel: _searchQuery.isEmpty ? 'Balık Ekle' : null,
+        onAction: _searchQuery.isEmpty ? () => context.go('/fish/new') : null,
       );
     }
 

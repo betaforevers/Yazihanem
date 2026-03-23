@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:yazihanem_mobile/core/storage/local_db.dart';
 import 'package:yazihanem_mobile/features/auction/domain/models/auction_model.dart';
 import 'package:yazihanem_mobile/features/cari/domain/models/cari_model.dart';
 import 'package:yazihanem_mobile/features/fish/domain/models/fish_model.dart';
@@ -6,8 +8,9 @@ import 'package:yazihanem_mobile/features/boat/domain/models/boat_model.dart';
 /// Auction data repository with mock data for dev mode.
 class AuctionRepository {
   final bool useMock;
+  final LocalDbService? _db;
 
-  AuctionRepository({this.useMock = false});
+  AuctionRepository({this.useMock = false, LocalDbService? db}) : _db = db;
 
   static final _mockFish = FishModel(
     id: 'f1', tenantId: 'dev', tur: 'Çipura',
@@ -69,11 +72,21 @@ class AuctionRepository {
   int _mockItemCounter = 200;
 
   Future<List<AuctionModel>> listAll() async {
-    if (useMock) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      return List.from(_mockAuctions);
+    try {
+      if (useMock) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        final items = List<AuctionModel>.from(_mockAuctions);
+        unawaited(_db?.cacheAuctionList(items.map((a) => a.toJson()).toList()));
+        return items;
+      }
+      throw UnimplementedError('Backend API not yet available');
+    } catch (_) {
+      final cached = _db?.getCachedAuctionList();
+      if (cached != null && cached.isNotEmpty) {
+        return cached.map(AuctionModel.fromJson).toList();
+      }
+      rethrow;
     }
-    throw UnimplementedError('Backend API not yet available');
   }
 
   Future<AuctionModel> getById(String id) async {

@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yazihanem_mobile/core/config/app_config.dart';
 import 'package:yazihanem_mobile/core/api/api_client.dart';
+import 'package:yazihanem_mobile/core/storage/local_db.dart';
 import 'package:yazihanem_mobile/features/boat/data/boat_repository.dart';
 import 'package:yazihanem_mobile/features/boat/domain/models/boat_model.dart';
 
 final boatRepositoryProvider = Provider<BoatRepository>((ref) {
   final config = ref.watch(appConfigProvider);
-  return BoatRepository(useMock: config.environment == AppEnvironment.dev);
+  final db = ref.watch(localDbProvider);
+  return BoatRepository(useMock: config.environment == AppEnvironment.dev, db: db);
 });
 
 class BoatListState {

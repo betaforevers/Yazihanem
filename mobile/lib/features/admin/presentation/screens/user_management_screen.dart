@@ -299,7 +299,7 @@ class _UserCard extends ConsumerWidget {
     final f = user.firstName.isNotEmpty ? user.firstName[0] : '';
     final l = user.lastName.isNotEmpty ? user.lastName[0] : '';
     final initials = '$f$l'.toUpperCase();
-    return initials.isNotEmpty ? initials : user.email[0].toUpperCase();
+    return initials.isNotEmpty ? initials : (user.email.isNotEmpty ? user.email[0].toUpperCase() : '?');
   }
 }
 

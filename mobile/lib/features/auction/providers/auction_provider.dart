@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yazihanem_mobile/core/config/app_config.dart';
 import 'package:yazihanem_mobile/core/api/api_client.dart';
+import 'package:yazihanem_mobile/core/storage/local_db.dart';
 import 'package:yazihanem_mobile/features/auction/data/auction_repository.dart';
 import 'package:yazihanem_mobile/features/auction/domain/models/auction_model.dart';
 import 'package:yazihanem_mobile/features/cari/domain/models/cari_model.dart';
@@ -9,7 +10,8 @@ import 'package:yazihanem_mobile/features/boat/domain/models/boat_model.dart';
 
 final auctionRepositoryProvider = Provider<AuctionRepository>((ref) {
   final config = ref.watch(appConfigProvider);
-  return AuctionRepository(useMock: config.environment == AppEnvironment.dev);
+  final db = ref.watch(localDbProvider);
+  return AuctionRepository(useMock: config.environment == AppEnvironment.dev, db: db);
 });
 
 class AuctionListState {

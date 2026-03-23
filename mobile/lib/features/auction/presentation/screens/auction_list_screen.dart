@@ -6,6 +6,7 @@ import 'package:yazihanem_mobile/features/auction/providers/auction_provider.dar
 import 'package:yazihanem_mobile/shared/theme/app_colors.dart';
 import 'package:yazihanem_mobile/shared/theme/app_spacing.dart';
 import 'package:yazihanem_mobile/shared/theme/app_text_styles.dart';
+import 'package:yazihanem_mobile/shared/widgets/shimmer_list.dart';
 
 /// Auction slips list screen.
 class AuctionListScreen extends ConsumerStatefulWidget {
@@ -51,23 +52,20 @@ class _AuctionListScreenState extends ConsumerState<AuctionListScreen> {
 
   Widget _buildBody(AuctionListState state) {
     if (state.isLoading && state.items.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+      return const ShimmerList(itemCount: 6, itemHeight: 90);
+    }
+
+    if (state.error != null && state.items.isEmpty) {
+      return ErrorRetryWidget(
+        message: 'Mezat fişleri yüklenemedi\n${state.error}',
+        onRetry: () => ref.read(auctionListProvider.notifier).load(),
+      );
     }
 
     if (state.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.gavel_rounded,
-                size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
-            const SizedBox(height: AppSpacing.md),
-            Text('Henüz mezat fişi yok',
-                style: AppTextStyles.headlineSmall
-                    .copyWith(color: AppColors.textMuted)),
-          ],
-        ),
+      return const EmptyStateWidget(
+        icon: Icons.gavel_rounded,
+        message: 'Henüz mezat fişi yok\nYeni fiş oluşturmak için + butonuna basın',
       );
     }
 

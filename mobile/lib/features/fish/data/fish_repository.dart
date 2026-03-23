@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'package:yazihanem_mobile/core/storage/local_db.dart';
 import 'package:yazihanem_mobile/features/fish/domain/models/fish_model.dart';
 
 /// Fish data repository with mock data for dev mode.
 class FishRepository {
   final bool useMock;
+  final LocalDbService? _db;
 
-  FishRepository({this.useMock = false});
+  FishRepository({this.useMock = false, LocalDbService? db}) : _db = db;
 
   static final _mockFishes = <FishModel>[
     FishModel(id: 'f1', tenantId: 'dev', tur: 'Çipura', birimTuru: UnitType.kilogram, miktar: 50, createdAt: DateTime.now().subtract(const Duration(days: 3)), updatedAt: DateTime.now().subtract(const Duration(days: 3))),
@@ -20,11 +23,21 @@ class FishRepository {
   int _mockIdCounter = 100;
 
   Future<List<FishModel>> listAll() async {
-    if (useMock) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      return List.from(_mockFishes);
+    try {
+      if (useMock) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        final items = List<FishModel>.from(_mockFishes);
+        unawaited(_db?.cacheFishList(items.map((f) => f.toJson()).toList()));
+        return items;
+      }
+      throw UnimplementedError('Backend API not yet available');
+    } catch (_) {
+      final cached = _db?.getCachedFishList();
+      if (cached != null && cached.isNotEmpty) {
+        return cached.map(FishModel.fromJson).toList();
+      }
+      rethrow;
     }
-    throw UnimplementedError('Backend API not yet available');
   }
 
   Future<FishModel> getById(String id) async {

@@ -6,6 +6,7 @@ import 'package:yazihanem_mobile/features/cari/providers/cari_provider.dart';
 import 'package:yazihanem_mobile/shared/theme/app_colors.dart';
 import 'package:yazihanem_mobile/shared/theme/app_spacing.dart';
 import 'package:yazihanem_mobile/shared/theme/app_text_styles.dart';
+import 'package:yazihanem_mobile/shared/widgets/shimmer_list.dart';
 
 /// Cari (merchant) list screen.
 class CariListScreen extends ConsumerStatefulWidget {
@@ -96,41 +97,22 @@ class _CariListScreenState extends ConsumerState<CariListScreen> {
 
   Widget _buildBody(CariListState state, List<CariModel> filtered) {
     if (state.isLoading && state.items.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+      return const ShimmerList(itemCount: 6, itemHeight: 80);
     }
 
     if (state.error != null && state.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 48, color: AppColors.error),
-            const SizedBox(height: AppSpacing.sm),
-            Text(state.error!,
-                style:
-                    AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
-          ],
-        ),
+      return ErrorRetryWidget(
+        message: 'Cariler yüklenemedi\n${state.error}',
+        onRetry: () => ref.read(cariListProvider.notifier).load(),
       );
     }
 
     if (filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.store_rounded,
-                size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _searchQuery.isEmpty ? 'Henüz cari kaydı yok' : 'Sonuç bulunamadı',
-              style: AppTextStyles.headlineSmall
-                  .copyWith(color: AppColors.textMuted),
-            ),
-          ],
-        ),
+      return EmptyStateWidget(
+        icon: Icons.store_rounded,
+        message: _searchQuery.isEmpty ? 'Henüz cari kaydı yok' : '"$_searchQuery" için sonuç bulunamadı',
+        actionLabel: _searchQuery.isEmpty ? 'Yeni Cari' : null,
+        onAction: _searchQuery.isEmpty ? () => context.go('/cari/new') : null,
       );
     }
 

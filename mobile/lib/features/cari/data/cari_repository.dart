@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'package:yazihanem_mobile/core/storage/local_db.dart';
 import 'package:yazihanem_mobile/features/cari/domain/models/cari_model.dart';
 
 /// Cari (merchant) data repository with mock data for dev mode.
 class CariRepository {
   final bool useMock;
+  final LocalDbService? _db;
 
-  CariRepository({this.useMock = false});
+  CariRepository({this.useMock = false, LocalDbService? db}) : _db = db;
 
   static final _mockCariler = <CariModel>[
     CariModel(
@@ -82,13 +85,24 @@ class CariRepository {
   int _mockIdCounter = 100;
 
   Future<List<CariModel>> listAll({bool activeOnly = false}) async {
-    if (useMock) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      final list = List<CariModel>.from(_mockCariler);
-      if (activeOnly) return list.where((c) => c.isActive).toList();
-      return list;
+    try {
+      if (useMock) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        final list = List<CariModel>.from(_mockCariler);
+        unawaited(_db?.cacheCariList(list.map((c) => c.toJson()).toList()));
+        if (activeOnly) return list.where((c) => c.isActive).toList();
+        return list;
+      }
+      throw UnimplementedError('Backend API not yet available');
+    } catch (_) {
+      final cached = _db?.getCachedCariList();
+      if (cached != null && cached.isNotEmpty) {
+        final list = cached.map(CariModel.fromJson).toList();
+        if (activeOnly) return list.where((c) => c.isActive).toList();
+        return list;
+      }
+      rethrow;
     }
-    throw UnimplementedError('Backend API not yet available');
   }
 
   Future<CariModel> getById(String id) async {

@@ -56,6 +56,38 @@ class AuctionModel {
     );
   }
 
+  factory AuctionModel.fromJson(Map<String, dynamic> json) {
+    return AuctionModel(
+      id: json['id'] as String,
+      tenantId: json['tenant_id'] as String? ?? '',
+      fisNo: json['fis_no'] as String,
+      mezatTarihi: DateTime.parse(json['mezat_tarihi'] as String),
+      cari: json['cari'] != null
+          ? CariModel.fromJson(Map<String, dynamic>.from(json['cari'] as Map))
+          : null,
+      kalemler: (json['kalemler'] as List<dynamic>?)
+              ?.map((e) => AuctionItemModel.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          [],
+      durum: AuctionDurum.values.firstWhere(
+        (d) => d.value == json['durum'],
+        orElse: () => AuctionDurum.acik,
+      ),
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'tenant_id': tenantId,
+        'fis_no': fisNo,
+        'mezat_tarihi': mezatTarihi.toIso8601String(),
+        'cari': cari?.toJson(),
+        'kalemler': kalemler.map((k) => k.toJson()).toList(),
+        'durum': durum.value,
+        'created_at': createdAt.toIso8601String(),
+      };
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -86,6 +118,24 @@ class AuctionItemModel {
 
   String get ozet =>
       '${balik.tur} — ${tekne.ad} — $miktar ${balik.birimTuru.label} × ₺${birimFiyat.toStringAsFixed(2)}';
+
+  factory AuctionItemModel.fromJson(Map<String, dynamic> json) {
+    return AuctionItemModel(
+      id: json['id'] as String,
+      balik: FishModel.fromJson(Map<String, dynamic>.from(json['balik'] as Map)),
+      tekne: BoatModel.fromJson(Map<String, dynamic>.from(json['tekne'] as Map)),
+      miktar: (json['miktar'] as num).toDouble(),
+      birimFiyat: (json['birim_fiyat'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'balik': balik.toJson(),
+        'tekne': tekne.toJson(),
+        'miktar': miktar,
+        'birim_fiyat': birimFiyat,
+      };
 
   AuctionItemModel copyWith({
     String? id,

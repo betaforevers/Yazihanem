@@ -21,6 +21,7 @@ import 'package:yazihanem_mobile/features/auction/presentation/screens/auction_l
 import 'package:yazihanem_mobile/features/auction/presentation/screens/fis_preview_screen.dart';
 import 'package:yazihanem_mobile/features/profile/presentation/screens/profile_screen.dart';
 import 'package:yazihanem_mobile/features/settings/presentation/screens/settings_screen.dart';
+import 'package:yazihanem_mobile/shared/providers/connectivity_provider.dart';
 import 'package:yazihanem_mobile/shared/theme/app_colors.dart';
 import 'package:yazihanem_mobile/shared/theme/app_spacing.dart';
 import 'package:yazihanem_mobile/shared/theme/app_text_styles.dart';
@@ -353,7 +354,7 @@ class _TanimCard extends StatelessWidget {
 
 // ─────────────── Main Shell with Bottom Nav ───────────────
 
-class _MainShell extends StatelessWidget {
+class _MainShell extends ConsumerWidget {
   final Widget child;
   const _MainShell({required this.child});
 
@@ -397,13 +398,51 @@ class _MainShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(connectivityProvider).valueOrNull ?? true;
+
     return Scaffold(
-      body: child,
+      body: Column(
+        children: [
+          if (!isOnline) const _OfflineBanner(),
+          Expanded(child: child),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex(context),
         onTap: (i) => _onTap(context, i),
         items: _navItems,
+      ),
+    );
+  }
+}
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.error,
+      padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs, horizontal: AppSpacing.md),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.wifi_off_rounded, color: Colors.white, size: 14),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              'İnternet bağlantısı yok',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

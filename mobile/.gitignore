@@ -43,3 +43,23 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Generated Dart files (code generation)
+*.g.dart
+*.freezed.dart
+*.gr.dart
+
+# Hive database files (runtime, should not be in project)
+*.hive
+
+# Sensitive / local config
+/android/local.properties
+/android/key.properties
+**/*.jks
+**/*.keystore
+
+# Test coverage
+coverage/
+
+# macOS
+.DS_Store

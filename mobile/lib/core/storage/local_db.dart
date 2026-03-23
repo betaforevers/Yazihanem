@@ -8,11 +8,16 @@ import 'package:hive_flutter/hive_flutter.dart';
 /// - Media metadata cache
 /// - User profile cache
 /// - Pending offline operations queue
+/// - Fish / Boat / Cari / Auction caches
 class LocalDbService {
   static const String _contentBoxName = 'content_cache';
   static const String _mediaBoxName = 'media_cache';
   static const String _userBoxName = 'user_cache';
   static const String _pendingOpsBoxName = 'pending_operations';
+  static const String _fishBoxName = 'fish_cache';
+  static const String _boatBoxName = 'boat_cache';
+  static const String _cariBoxName = 'cari_cache';
+  static const String _auctionBoxName = 'auction_cache';
 
   bool _initialized = false;
 
@@ -25,6 +30,10 @@ class LocalDbService {
       Hive.openBox<Map>(_mediaBoxName),
       Hive.openBox<Map>(_userBoxName),
       Hive.openBox<Map>(_pendingOpsBoxName),
+      Hive.openBox<Map>(_fishBoxName),
+      Hive.openBox<Map>(_boatBoxName),
+      Hive.openBox<Map>(_cariBoxName),
+      Hive.openBox<Map>(_auctionBoxName),
     ]);
     _initialized = true;
   }
@@ -95,15 +104,85 @@ class LocalDbService {
     await pendingOpsBox.delete(key);
   }
 
+  // ─────────── Fish Cache ───────────
+  Box<Map> get fishBox => Hive.box<Map>(_fishBoxName);
+
+  Future<void> cacheFishList(List<Map<String, dynamic>> items) async {
+    final box = fishBox;
+    await box.clear();
+    for (final item in items) {
+      final id = item['id'] as String?;
+      if (id != null) await box.put(id, {...item, '_cached_at': DateTime.now().toIso8601String()});
+    }
+  }
+
+  List<Map<String, dynamic>> getCachedFishList() {
+    return fishBox.values.map(_toMap).toList();
+  }
+
+  // ─────────── Boat Cache ───────────
+  Box<Map> get boatBox => Hive.box<Map>(_boatBoxName);
+
+  Future<void> cacheBoatList(List<Map<String, dynamic>> items) async {
+    final box = boatBox;
+    await box.clear();
+    for (final item in items) {
+      final id = item['id'] as String?;
+      if (id != null) await box.put(id, {...item, '_cached_at': DateTime.now().toIso8601String()});
+    }
+  }
+
+  List<Map<String, dynamic>> getCachedBoatList() {
+    return boatBox.values.map(_toMap).toList();
+  }
+
+  // ─────────── Cari Cache ───────────
+  Box<Map> get cariBox => Hive.box<Map>(_cariBoxName);
+
+  Future<void> cacheCariList(List<Map<String, dynamic>> items) async {
+    final box = cariBox;
+    await box.clear();
+    for (final item in items) {
+      final id = item['id'] as String?;
+      if (id != null) await box.put(id, {...item, '_cached_at': DateTime.now().toIso8601String()});
+    }
+  }
+
+  List<Map<String, dynamic>> getCachedCariList() {
+    return cariBox.values.map(_toMap).toList();
+  }
+
+  // ─────────── Auction Cache ───────────
+  Box<Map> get auctionBox => Hive.box<Map>(_auctionBoxName);
+
+  Future<void> cacheAuctionList(List<Map<String, dynamic>> items) async {
+    final box = auctionBox;
+    await box.clear();
+    for (final item in items) {
+      final id = item['id'] as String?;
+      if (id != null) await box.put(id, {...item, '_cached_at': DateTime.now().toIso8601String()});
+    }
+  }
+
+  List<Map<String, dynamic>> getCachedAuctionList() {
+    return auctionBox.values.map(_toMap).toList();
+  }
+
   // ─────────── Clear ───────────
   Future<void> clearAll() async {
     await contentBox.clear();
     await mediaBox.clear();
     await userBox.clear();
+    await fishBox.clear();
+    await boatBox.clear();
+    await cariBox.clear();
+    await auctionBox.clear();
     // NOTE: pending operations are NOT cleared
   }
 
-  // ─────────── Helper ───────────
+  // ─────────── Helpers ───────────
+  static Map<String, dynamic> _toMap(Map e) => Map<String, dynamic>.from(e);
+
   Map<String, dynamic>? _getWithTTL(Box<Map> box, String key, Duration? maxAge) {
     final data = box.get(key);
     if (data == null) return null;

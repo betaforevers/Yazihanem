@@ -5,7 +5,7 @@ import 'package:yazihanem_mobile/features/boat/presentation/widgets/boat_card.da
 import 'package:yazihanem_mobile/features/boat/providers/boat_provider.dart';
 import 'package:yazihanem_mobile/shared/theme/app_colors.dart';
 import 'package:yazihanem_mobile/shared/theme/app_spacing.dart';
-import 'package:yazihanem_mobile/shared/theme/app_text_styles.dart';
+import 'package:yazihanem_mobile/shared/widgets/shimmer_list.dart';
 
 /// Boat list screen with FAB and delete.
 class BoatListScreen extends ConsumerStatefulWidget {
@@ -48,23 +48,22 @@ class _BoatListScreenState extends ConsumerState<BoatListScreen> {
 
   Widget _buildBody(BoatListState state) {
     if (state.isLoading && state.items.isEmpty) {
-      return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+      return const ShimmerList(itemCount: 5, itemHeight: 80);
+    }
+
+    if (state.error != null && state.items.isEmpty) {
+      return ErrorRetryWidget(
+        message: 'Tekneler yüklenemedi\n${state.error}',
+        onRetry: () => ref.read(boatListProvider.notifier).load(),
+      );
     }
 
     if (state.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.sailing_rounded,
-                size: 64, color: AppColors.textMuted.withValues(alpha: 0.5)),
-            const SizedBox(height: AppSpacing.md),
-            Text('Henüz tekne kaydı yok',
-                style: AppTextStyles.headlineSmall
-                    .copyWith(color: AppColors.textMuted)),
-          ],
-        ),
+      return EmptyStateWidget(
+        icon: Icons.sailing_rounded,
+        message: 'Henüz tekne kaydı yok',
+        actionLabel: 'Tekne Ekle',
+        onAction: () => context.go('/boat/new'),
       );
     }
 
